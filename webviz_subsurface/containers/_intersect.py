@@ -56,12 +56,20 @@ and a folder of well files stored in RMS well format.
         'display': 'grid',
         'align-content': 'space-around',
         'justify-content': 'space-between',
-        'grid-template-columns': '2fr 6fr',
+        'grid-template-columns': '1fr 1fr',
     }
-
+    CONTROL_STYLE = {
+        'display': 'grid',
+        'align-content': 'space-around',
+        'justify-content': 'space-between',
+        'grid-template-columns': '1fr 1fr 1fr 1fr 1fr',
+        'padding-right': '20px',
+        'padding-left': '20px',
+        'font-size':'10px'
+    }
     def __init__(self, app, container_settings, ensemble,
                  well_path, surface_cat, surface_names,
-                 cube_path, cubes: list, well_suffix='.rmswell'):
+                 cube_path, cubes: list, well_suffix='.rmswell', views= 1):
 
         self.well_path = well_path
         self.cube_path = cube_path
@@ -72,16 +80,22 @@ and a folder of well files stored in RMS well format.
         self.surface_cat = surface_cat
         self.surface_names = surface_names
         self.unique_id = f'{uuid4()}'
-        self.well_list_id = f'well-list-id-{self.unique_id}'
-        self.cube_list_id = f'cube-list-id-{self.unique_id}'
-        self.real_list_id = f'real-list-id-{self.unique_id}'
-        self.surf_list_id = f'surf-list-id-{self.unique_id}'
-        self.color_scale_id = f'color-scale-id-{self.unique_id}'
-        self.table_id = f'table-id-{self.unique_id}'
-        self.well_tvd_id = f'well-tvd-id-{self.unique_id}'
-        self.zoom_state_id = f'ui-state-id-{self.unique_id}'
-        self.intersection_id = f'intersection-id-{self.unique_id}'
+        self.views = views
+        self.well_list_id = self.assign_ids('well-list-id')
+        self.cube_list_id = self.assign_ids('cube-list-id')
+        self.real_list_id = self.assign_ids('real-list-id')
+        self.surf_list_id = self.assign_ids('surf-list-id')
+        self.color_scale_id = self.assign_ids('color-scale-id')
+        self.table_id = self.assign_ids('table-id')
+        self.well_tvd_id = self.assign_ids('well-tvd-id')
+        self.zoom_state_id = self.assign_ids('ui-state-id')
+        self.intersection_id = self.assign_ids('intersection-id')
         self.set_callbacks(app)
+
+    
+    def assign_ids(self, domId):
+        return [f'{domId}-{i}-{self.unique_id}' for i in range(self.views)]
+
 
     @property
     def realizations(self):
@@ -130,7 +144,7 @@ and a folder of well files stored in RMS well format.
     def graph_layout(self):
         '''Styling the graph'''
         return {
-            'margin': {'t': 0},
+            'margin': {'t': 0}, 
             'yaxis': {'autorange': 'reversed',
                       'zeroline': False, 'title': 'TVD'},
             'xaxis': {'zeroline': False,
@@ -138,86 +152,98 @@ and a folder of well files stored in RMS well format.
 
         }
 
+    
+    def view_layout(self, view):
+        return html.Div([
+            html.Div(style=Intersect.CONTROL_STYLE,
+                   children=[
+                   html.Div([
+                        html.P('Seismic cube:', style={'font-weight': 'bold'}),
+                        dcc.Dropdown(
+                            # style={'width': '100%'},
+                            id=self.cube_list_id[view],
+                            options=[{'label': c, 'value': c}
+                                     for c in self.cubes],
+                            value=self.cubes[0],
+                            clearable=False
+                        )]),
+                    html.Div([
+                        html.P('Seismic color:', style={'font-weight': 'bold'}),
+                        dcc.Dropdown(
+                            # style={'width': '50%'},
+                            id=self.color_scale_id[view],
+                            options=[{'label': c, 'value': c}
+                                     for c in Intersect.COLOR_SCALES],
+                            value='RdBu',
+                            clearable=False
+                        )]),
+                    html.Div([
+                        html.P('Well:', style={'font-weight': 'bold'}),
+                        dcc.Dropdown(
+                            # style={'width': '50%'},
+                            id=self.well_list_id[view],
+                            options=[{'label': PurePath(well).stem, 'value': well}
+                                     for well in self.well_names],
+                            value=self.well_names[0],
+                            clearable=False
+                        )]),
+                    html.Div([
+                        html.P('Surfaces:', style={'font-weight': 'bold'}),
+                        dcc.Dropdown(
+                            id=self.surf_list_id[view],
+                            options=[{'label': r, 'value': r}
+                                     for r in self.surface_names],
+                            value=self.surface_names[0],
+                            multi=True,
+                            placeholder='All surfaces'
+                        )]),
+                    html.Div([
+                        html.P('Realizations:', style={'font-weight': 'bold'}),
+                        dcc.Dropdown(
+                            id=self.real_list_id[view],
+                            options=[{'label': real, 'value': path}
+                                     for path, real in self.realizations.items()],
+                            value=list(self.realizations.keys())[0],
+                            multi=True,
+                            placeholder='All realizations'
+                        )])
+                ]),
+            html.Div(children=[
+                    dcc.Graph(id=self.intersection_id[view])
+                ])])
+
     @property
     def layout(self):
         return html.Div([
-            html.Div(style=Intersect.LAYOUT_STYLE, children=[
-                html.Div([
-                    html.P('Seismic cube:', style={'font-weight': 'bold'}),
-                    dcc.Dropdown(
-                        style={'width': '100%'},
-                        id=self.cube_list_id,
-                        options=[{'label': c, 'value': c}
-                                 for c in self.cubes],
-                        value=self.cubes[0],
-                        clearable=False
-                    ),
-                    html.P('Seismic color:', style={'font-weight': 'bold'}),
-                    dcc.Dropdown(
-                        style={'width': '50%'},
-                        id=self.color_scale_id,
-                        options=[{'label': c, 'value': c}
-                                 for c in Intersect.COLOR_SCALES],
-                        value='RdBu',
-                        clearable=False
-                    ),
-                    html.P('Well:', style={'font-weight': 'bold'}),
-                    dcc.Dropdown(
-                        style={'width': '50%'},
-                        id=self.well_list_id,
-                        options=[{'label': PurePath(well).stem, 'value': well}
-                                 for well in self.well_names],
-                        value=self.well_names[0],
-                        clearable=False
-                    ),
-                    html.P('Surfaces:', style={'font-weight': 'bold'}),
-                    dcc.Dropdown(
-                        id=self.surf_list_id,
-                        options=[{'label': r, 'value': r}
-                                 for r in self.surface_names],
-                        value=self.surface_names[0],
-                        multi=True,
-                        placeholder='All surfaces'
-                    ),
-                    html.P('Realizations:', style={'font-weight': 'bold'}),
-                    dcc.Dropdown(
-                        id=self.real_list_id,
-                        options=[{'label': real, 'value': path}
-                                 for path, real in self.realizations.items()],
-                        value=list(self.realizations.keys())[0],
-                        multi=True,
-                        placeholder='All realizations'
-                    )
-                ]),
-                html.Div(children=[
-                    dcc.Graph(id=self.intersection_id)
-                ])
-            ])
+            html.Div(style=Intersect.LAYOUT_STYLE, children=[self.view_layout(i) for i in range(self.views)]
+                
+            )
         ])
 
     def set_callbacks(self, app):
-        @app.callback(
-            Output(self.intersection_id, 'figure'),
-            [Input(self.cube_list_id, 'value'),
-             Input(self.well_list_id, 'value'),
-             Input(self.real_list_id, 'value'),
-             Input(self.surf_list_id, 'value'),
-             Input(self.color_scale_id, 'value')])
-        def set_fence(_cube_path, _well_path, _reals, _surfs, color_scale):
-            '''Callback to update intersection on data change'''
-            if not isinstance(_surfs, list):
-                _surfs = [_surfs]
-            if not isinstance(_reals, list):
-                _reals = [_reals]
-            if not _reals:
-                _reals = list(self.realizations.keys())
-            if not _surfs:
-                _surfs = self.surface_names
-            s_names = [s for s in self.surface_names if s in _surfs]
-            xsect = self.plot_xsection(
-                _cube_path, _well_path, _reals, s_names, color_scale)
-            xsect['layout']['uirevision'] = 'keep'
-            return xsect
+        for view in range(self.views):
+            @app.callback(
+                Output(self.intersection_id[view], 'figure'),
+                [Input(self.cube_list_id[view], 'value'),
+                 Input(self.well_list_id[view], 'value'),
+                 Input(self.real_list_id[view], 'value'),
+                 Input(self.surf_list_id[view], 'value'),
+                 Input(self.color_scale_id[view], 'value')])
+            def set_fence(_cube_path, _well_path, _reals, _surfs, color_scale):
+                '''Callback to update intersection on data change'''
+                if not isinstance(_surfs, list):
+                    _surfs = [_surfs]
+                if not isinstance(_reals, list):
+                    _reals = [_reals]
+                if not _reals:
+                    _reals = list(self.realizations.keys())
+                if not _surfs:
+                    _surfs = self.surface_names
+                s_names = [s for s in self.surface_names if s in _surfs]
+                xsect = self.plot_xsection(
+                    _cube_path, _well_path, _reals, s_names, color_scale)
+                xsect['layout']['uirevision'] = 'keep'
+                return xsect
 
     def add_webvizstore(self):
         funcs = []
@@ -245,9 +271,9 @@ and a folder of well files stored in RMS well format.
 def make_well_trace(well, tvdmin=0):
     '''Creates well trace for graph'''
     x = [trace[3]
-         for trace in get_wfence(well, extend=2, tvdmin=tvdmin).values]
+         for trace in get_wfence(well, nextend=2, tvdmin=tvdmin).values]
     y = [trace[2]
-         for trace in get_wfence(well, extend=2, tvdmin=tvdmin).values]
+         for trace in get_wfence(well, nextend=2, tvdmin=tvdmin).values]
     # Filter out elements less than tvdmin
     # https://stackoverflow.com/questions/17995302/filtering-two-lists-simultaneously
     try:
@@ -270,7 +296,7 @@ def make_well_trace(well, tvdmin=0):
 def make_surface_traces(well, reals, surf_name, cat, color):
     '''Creates surface traces for graph'''
     plot_data = []
-    x = [trace[3] for trace in get_wfence(well, extend=200, tvdmin=0).values]
+    x = [trace[3] for trace in get_wfence(well, nextend=200, tvdmin=0).values]
     for j, real in enumerate(reals):
         y = get_hfence(well, surf_name, real, cat)['fence']
         showlegend = True if j == 0 else False

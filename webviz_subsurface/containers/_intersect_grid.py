@@ -230,12 +230,26 @@ and a folder of well files stored in RMS well format.
     def set_callbacks(self, app):
         for view in range(self.views):
             @app.callback(
+                Output(self.real_list_id[view], 'value'),
+                [Input('real_selector', 'children')],
+                [State(self.real_list_id[view], 'value')])
+            def update_real(smry_real, current_real):
+                use_real = current_real
+                import json
+                smry_real = json.loads(smry_real)
+                if 'REAL' in smry_real:
+                    for path, real in self.realizations.items():
+                        if smry_real['REAL'] == real:
+                            use_real = path
+                return use_real
+            @app.callback(
                 Output(self.intersection_id[view], 'figure'),
                 [Input(self.parameters_id[view], 'value'),
                  Input(self.well_list_id[view], 'value'),
                  Input(self.real_list_id[view], 'value'),
                  Input(self.surf_list_id[view], 'value'),
-                 Input(self.color_scale_id[view], 'value')])
+                 Input(self.color_scale_id[view], 'value')
+                 ])
             def set_fence(_parameter, _well_path, _reals, _surfs, color_scale):
                 '''Callback to update intersection on data change'''
                 if not isinstance(_surfs, list):
@@ -243,6 +257,7 @@ and a folder of well files stored in RMS well format.
 
                 if not _surfs:
                     _surfs = self.surface_names
+                
                 s_names = [s for s in self.surface_names if s in _surfs]
                 xsect = self.plot_xsection(
                     _parameter, _well_path, _reals, s_names, color_scale)
