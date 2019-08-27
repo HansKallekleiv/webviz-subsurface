@@ -31,7 +31,8 @@ from ._history_match import HistoryMatch
 from ._intersect import Intersect
 from ._morris_plot import MorrisPlot
 from ._inplace_volumes import InplaceVolumes
-
+from ._map import Map
+from ._leaflet_seismic import LeafletSeismic
 
 __all__ = ['SummaryStats',
            'ParameterDistribution',
@@ -40,4 +41,6 @@ __all__ = ['SummaryStats',
            'HistoryMatch',
            'Intersect',
            'MorrisPlot',
-           'InplaceVolumes']
+           'InplaceVolumes',
+           'Map',
+           'LeafletSeismic']

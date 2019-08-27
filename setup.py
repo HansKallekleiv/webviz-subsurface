@@ -30,7 +30,9 @@ setup(
             'HistoryMatch = webviz_subsurface.containers:HistoryMatch',
             'Intersect = webviz_subsurface.containers:Intersect',
             'MorrisPlot = webviz_subsurface.containers:MorrisPlot',
-            'InplaceVolumes = webviz_subsurface.containers:InplaceVolumes'
+            'InplaceVolumes = webviz_subsurface.containers:InplaceVolumes',
+            'Map = webviz_subsurface.containers:Map',
+            'LeafletSeismic = webviz_subsurface.containers:LeafletSeismic'
         ]
     },
     install_requires=[
@@ -38,7 +40,11 @@ setup(
         'dash-daq>=0.1.5',
         'webviz-config>=0.0.4',
         'webviz-plotly>=0.0.1',
-        'webviz-subsurface-components>=0.0.3'
+        'webviz-subsurface-components>=0.0.3',
+        'xtgeo==2.1.0b2',
+        'pillow',
+        'azure-storage-blob'
+
     ],
     tests_require=tests_require,
     extras_require={'tests': tests_require},
