@@ -84,6 +84,7 @@ class LayeredSurface:
                 "data": [
                     {
                         "type": "image",
+                        "allowHillshading": True,
                         "url": self.as_png,
                         "colormap": self.colormap,
                         "bounds": self.bounds,

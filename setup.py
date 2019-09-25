@@ -33,6 +33,7 @@ setup(
             "MorrisPlot = webviz_subsurface.containers:MorrisPlot",
             "InplaceVolumes = webviz_subsurface.containers:InplaceVolumes",
             "ReservoirSimulationTimeSeries = webviz_subsurface.containers:ReservoirSimulationTimeSeries",
+            "SurfaceViewer = webviz_subsurface.containers:SurfaceViewer",
         ]
     },
     install_requires=[

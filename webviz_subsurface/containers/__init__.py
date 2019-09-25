@@ -32,6 +32,7 @@ from ._intersect import Intersect
 from ._morris_plot import MorrisPlot
 from ._inplace_volumes import InplaceVolumes
 from ._reservoir_simulation_timeseries import ReservoirSimulationTimeSeries
+from ._surface_viewer import SurfaceViewer
 
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "MorrisPlot",
     "InplaceVolumes",
     "ReservoirSimulationTimeSeries",
+    "SurfaceViewer",
 ]
