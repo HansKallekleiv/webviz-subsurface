@@ -12,7 +12,7 @@ from webviz_config.containers import WebvizContainer
 from webviz_subsurface.datainput.layeredmap import LayeredSurface
 from webviz_subsurface_components import LayeredMap
 from webviz_subsurface.private_containers._surface_selector import SurfaceSelector
-from webviz_subsurface.datainput import get_realizations
+from webviz_subsurface.datainput import get_realizations, find_surfaces
 from xtgeo import RegularSurface, Surfaces
 
 
@@ -34,6 +34,9 @@ class SurfaceViewer(WebvizContainer):
             ensemble_paths=self.ensemble_names, ensemble_set_name="EnsembleSet"
         )
         self.strat_context = stratigraphic_context
+        if not self.strat_context:
+            self.strat_context = find_surfaces(self.ensemble_names)
+        print(self.strat_context)
         self.ensembles.to_csv("/tmp/webviz.tmp.csv", index=False)
         self.uid = f"{uuid4()}"
 

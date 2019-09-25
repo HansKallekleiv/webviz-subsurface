@@ -95,7 +95,7 @@ another_property:
     def dates_in_attr(self, attr):
         dates = self._configuration[attr].get("dates", None)
         if dates:
-            return [str(d) for d in dates]
+            return [d for d in dates]
         else:
             return None
 
@@ -413,6 +413,7 @@ another_property:
             if not ctx:
                 raise PreventUpdate
             dates = self.dates_in_attr(attr)
+            print(dates)
             if not dates:
                 return [], None, self.hide_dropdown_style
 
