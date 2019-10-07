@@ -114,3 +114,23 @@ def find_surfaces(ensemble_paths: tuple, suffix="*.gri", delimiter="--"):
         }
         for attr, dframe in df.groupby("attribute")
     }
+
+@CACHE.memoize(timeout=CACHE.TIMEOUT)
+def find_wells(ensemble_paths: tuple, suffix="*.w"):
+    """Reads surface file names stored in standard FMU format, and returns a dictionary
+    on the following format:
+    surface_property:
+        names:
+            - some_surface_name
+            - another_surface_name
+        dates:
+            - some_date
+            - another_date
+    """
+    # Create list of all files in all realizations in all ensembles
+    files = []
+    for _, path in ensemble_paths:
+        path = Path(path)
+        files += glob.glob(str(path / ".." / ".." / "share" / "wells" / suffix))
+
+    return [f.stem for f in files]
