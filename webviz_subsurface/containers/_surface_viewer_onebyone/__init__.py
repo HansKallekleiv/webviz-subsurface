@@ -3,10 +3,12 @@ from pathlib import Path
 import json
 
 import numpy as np
+from matplotlib import colors
 
 from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
 import dash_html_components as html
+import dash_colorscales
 
 from webviz_config import WebvizContainerABC
 from webviz_subsurface_components import LayeredMap
@@ -104,7 +106,16 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         return html.Div(
             style=self.set_grid_layout("1fr 2fr 2fr 2fr"),
             children=[
-                self.selector.layout,
+                html.Div(
+                    style={"zIndex": 2000},
+                    children=[
+                        self.selector.layout,
+                        dash_colorscales.DashColorscales(
+                            id="colorscale-picker", nSwatches=256
+                        ),
+                        html.Pre(id="output"),
+                    ],
+                ),
                 self.layered_map_layout(
                     self._low_map_wrapper_id, self._low_map_label_id, self._low_map_id
                 ),
@@ -140,9 +151,12 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 Output(self._high_map_label_id, "children"),
                 Output(self._high_map_wrapper_id, "style"),
             ],
-            [Input(self.selector.storage_id, "children")],
+            [
+                Input(self.selector.storage_id, "children"),
+                Input("colorscale-picker", "colorscale"),
+            ],
         )
-        def _set_base_layer(surface):
+        def _set_base_layer(surface, colorscale):
 
             if not surface:
                 raise PreventUpdate
@@ -155,7 +169,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             attribute = surface["attribute"]
             date = surface["date"]
             senscases = surface["sens_cases"]
-
+            colormap = colors.ListedColormap(colorscale) if colorscale else "viridis"
             if senstype == "mc":
                 if not len(senscases) == 1:
                     raise PreventUpdate
@@ -166,9 +180,9 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                     for real in senscases[0]["realizations"]
                 ]
 
-                low = set_base_layer(fns, f"{name} - min", "min")
-                base = set_base_layer(fns, f"{name} - mean", "mean")
-                high = set_base_layer(fns, f"{name} - max", "max")
+                low = set_base_layer(fns, f"{name} - min", "min", colormap)
+                base = set_base_layer(fns, f"{name} - mean", "mean", colormap)
+                high = set_base_layer(fns, f"{name} - max", "max", colormap)
                 return (
                     *low,
                     "Min",
@@ -246,7 +260,6 @@ def set_base_layer(
     center = [np.mean(first_real[0]), np.mean(first_real[1])]
 
     z_arr = surface_stat[aggregation]
-
     layer = {
         "name": name,
         "checked": True,

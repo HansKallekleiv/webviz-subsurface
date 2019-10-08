@@ -43,6 +43,7 @@ setup(
     },
     install_requires=[
         "scipy~=1.2",
+        "dash-colorscales~=0.04",
         "dash-daq~=0.1",
         "matplotlib~=3.0",
         "webviz-config>=0.0.24",
