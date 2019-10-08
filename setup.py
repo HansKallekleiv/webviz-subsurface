@@ -38,6 +38,7 @@ setup(
             + "webviz_subsurface.containers:ReservoirSimulationTimeSeries",
             "ReservoirSimulationTimeSeriesOneByOne = "
             + "webviz_subsurface.containers:ReservoirSimulationTimeSeriesOneByOne",
+            "SurfaceViewerOneByOne = webviz_subsurface.containers:SurfaceViewerOneByOne",
         ]
     },
     install_requires=[
