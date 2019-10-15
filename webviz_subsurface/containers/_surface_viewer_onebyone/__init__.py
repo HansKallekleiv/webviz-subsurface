@@ -173,19 +173,16 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 Output(self._low_map_id, "layers"),
                 Output(self._low_map_id, "map_bounds"),
                 Output(self._low_map_id, "center"),
-                Output(self._low_map_id, "uirevision"),
                 Output(self._low_map_label_id, "children"),
                 Output(self._low_map_wrapper_id, "style"),
                 Output(self._base_map_id, "layers"),
                 Output(self._base_map_id, "map_bounds"),
                 Output(self._base_map_id, "center"),
-                Output(self._base_map_id, "uirevision"),
                 Output(self._base_map_label_id, "children"),
                 Output(self._base_map_wrapper_id, "style"),
                 Output(self._high_map_id, "layers"),
                 Output(self._high_map_id, "map_bounds"),
                 Output(self._high_map_id, "center"),
-                Output(self._high_map_id, "uirevision"),
                 Output(self._high_map_label_id, "children"),
                 Output(self._high_map_wrapper_id, "style"),
             ],
@@ -224,15 +221,12 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 high = set_base_layer(surfaces["max"], f"{name} - max", colormap)
                 return (
                     *low,
-                    str(uuid4()),
                     "Min",
                     {"visibility": "visible"},
                     *base,
-                    str(uuid4()),
                     "Mean",
                     {"visibility": "visible"},
                     *high,
-                    str(uuid4()),
                     "Max",
                     {"visibility": "visible"},
                 )
@@ -254,7 +248,6 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                     output.extend(
                         [
                             *map_data,
-                            str(uuid4()),
                             case["case"],
                             {"visibility": "visible"},
                         ]
@@ -266,7 +259,6 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                             [],
                             [[1, 1], [4, 4]],
                             [1, 1],
-                            "renew",
                             "",
                             {"visibility": "hidden"},
                         ]
