@@ -41,7 +41,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         )
 
         # Extract realizations and sensitivity information
-        self.ensembles = get_realizations(
+        self._ensembles = get_realizations(
             ensemble_paths=self.ens_paths, ensemble_set_name="EnsembleSet"
         )
 
@@ -56,7 +56,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         self._base_map_wrapper_id = f"{str(uuid4())}-base-wrapper-id"
         self._high_map_wrapper_id = f"{str(uuid4())}-high-wrapper-id"
         self._color_scale_id = f"{str(uuid4())}-color-scale-id"
-        self.selector = SurfaceSelector(app, self.config, self.ensembles)
+        self.selector = SurfaceSelector(app, self.config, self._ensembles)
         self.set_callbacks(app)
 
     def add_webvizstore(self):
@@ -210,18 +210,18 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             if senstype == "mc":
                 if not len(senscases) == 1:
                     raise PreventUpdate
-                fns = [
-                    get_path(
+                surfaces = calculate_surface_statistics(
+                    [
                         get_surface_path(
                             self._ensembles, ensemble, real, name, attribute, date
                         )
                         for real in senscases[0]["realizations"]
-                    )
-                ]
+                    ]
+                )
 
-                low = set_base_layer(fns, f"{name} - min", "min", colormap)
-                base = set_base_layer(fns, f"{name} - mean", "mean", colormap)
-                high = set_base_layer(fns, f"{name} - max", "max", colormap)
+                low = set_base_layer(surfaces["min"], f"{name} - min", colormap)
+                base = set_base_layer(surfaces["mean"], f"{name} - mean", colormap)
+                high = set_base_layer(surfaces["max"], f"{name} - max", colormap)
                 return (
                     *low,
                     str(uuid4()),
@@ -240,15 +240,17 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 output = []
                 case_count = 0
                 for case in senscases:
-                    fns = [
-                        get_path(
+                    surfaces = calculate_surface_statistics(
+                        [
                             get_surface_path(
                                 self._ensembles, ensemble, real, name, attribute, date
                             )
                             for real in case["realizations"]
-                        )
-                    ]
-                    map_data = set_base_layer(fns, f"{name} - {case['case']}", "mean")
+                        ]
+                    )
+                    map_data = set_base_layer(
+                        surfaces["mean"], f"{name} - {case['case']}", "mean"
+                    )
                     output.extend(
                         [
                             *map_data,
@@ -292,11 +294,15 @@ def get_surface_stem(name, attribute, date=None):
 def get_surface_path(ensembles, ensemble, realization, name, attribute, date=None):
     """Returns the full path to a surface as stored on disk (FMU standard"""
     return str(
-        get_runpath(ensembles, ensemble, realization)
-        / "share"
-        / "results"
-        / "maps"
-        / get_surface_stem(name, attribute, date)
+        get_path(
+            Path(
+                get_runpath(ensembles, ensemble, realization)
+                / "share"
+                / "results"
+                / "maps"
+                / get_surface_stem(name, attribute, date)
+            )
+        )
     )
 
 
@@ -306,23 +312,23 @@ def get_path(path) -> Path:
 
 
 def set_base_layer(
-    fns, name, aggregation="mean", colormap="viridis", min_value=None, max_value=None
+    surface,
+    name,
+    aggregation="mean",
+    colormap="viridis",
+    min_value=None,
+    max_value=None,
 ):
     """Given a list of file paths to irap bin surfaces, returns statistical surfaces"""
 
     # Calculate surface arrays
-    surface_stat = calculate_surface_statistics(fns)
-
-    first_real = surface_stat["template"]
 
     bounds = [
-        [np.min(first_real[0]), np.min(first_real[1])],
-        [np.max(first_real[0]), np.max(first_real[1])],
+        [np.min(surface[0]), np.min(surface[1])],
+        [np.max(surface[0]), np.max(surface[1])],
     ]
 
-    center = [np.mean(first_real[0]), np.mean(first_real[1])]
-
-    z_arr = surface_stat[aggregation]
+    center = [np.mean(surface[0]), np.mean(surface[1])]
     layer = {
         "name": name,
         "checked": True,
@@ -331,11 +337,11 @@ def set_base_layer(
             {
                 "allowHillshading": True,
                 "type": "image",
-                "url": array_to_png(z_arr[2].copy()),
+                "url": array_to_png(surface[2].copy()),
                 "colormap": get_colormap(colormap),
                 "bounds": bounds,
-                "minvalue": min_value if min_value else f"{z_arr[2].min():.2f}",
-                "maxvalue": max_value if max_value else f"{z_arr[2].max():.2f}",
+                "minvalue": min_value if min_value else f"{surface[2].min():.2f}",
+                "maxvalue": max_value if max_value else f"{surface[2].max():.2f}",
             }
         ],
     }
