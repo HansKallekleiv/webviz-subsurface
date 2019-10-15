@@ -3,19 +3,22 @@ from pathlib import Path
 import json
 
 import numpy as np
-from matplotlib import colors
+from matplotlib.colors import ListedColormap
 
-from dash.dependencies import Input, Output
+import dash
+from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_html_components as html
 import dash_colorscales
 
 from webviz_config import WebvizContainerABC
+from webviz_config.webviz_store import webvizstore
 from webviz_subsurface_components import LayeredMap
 from webviz_subsurface.datainput.layeredmap._image_processing import (
     get_colormap,
     array_to_png,
 )
+
 from webviz_subsurface.datainput import get_realizations, find_surfaces
 from webviz_subsurface.datainput._surface import calculate_surface_statistics
 from ._surface_selector import SurfaceSelector
@@ -33,14 +36,15 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         )
 
         # Find surfaces
-        config = find_surfaces(self.ens_paths)
+        self.config = find_surfaces(
+            ensemble_paths=self.ens_paths, suffix="*.gri", delimiter="--"
+        )
 
         # Extract realizations and sensitivity information
-        ensembles = get_realizations(
+        self.ensembles = get_realizations(
             ensemble_paths=self.ens_paths, ensemble_set_name="EnsembleSet"
         )
 
-        self._ensembles = ensembles
         self._storage_id = f"{str(uuid4())}-surface-viewer"
         self._low_map_id = f"{str(uuid4())}-low-id"
         self._base_map_id = f"{str(uuid4())}-base-id"
@@ -51,10 +55,26 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         self._low_map_wrapper_id = f"{str(uuid4())}-low-wrapper-id"
         self._base_map_wrapper_id = f"{str(uuid4())}-base-wrapper-id"
         self._high_map_wrapper_id = f"{str(uuid4())}-high-wrapper-id"
-        self.selector = SurfaceSelector(app, config, ensembles)
+        self._color_scale_id = f"{str(uuid4())}-color-scale-id"
+        self.selector = SurfaceSelector(app, self.config, self.ensembles)
         self.set_callbacks(app)
 
     def add_webvizstore(self):
+        # surfaces = {
+        #         attr: {
+        #             "names": list(dframe["name"].unique()),
+        #             "dates": list(dframe["date"].unique())
+        #             if "date" in dframe.columns
+        #             else [None],
+        #         }
+        #         for attr, dframe in config.groupby("attribute")
+        #     }
+        # Path(
+        # ensembles.loc[
+        # (ensembles["ENSEMBLE"] == ensemble) & (ensembles["REAL"] == realization)
+        # ]["RUNPATH"].item()
+        # )
+
         return [
             (
                 get_realizations,
@@ -64,7 +84,21 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                         "ensemble_set_name": "EnsembleSet",
                     }
                 ],
-            )
+            ),
+            (
+                find_surfaces,
+                [
+                    {
+                        "ensemble_paths": self.ens_paths,
+                        "suffix": "*.gri",
+                        "delimiter": "--",
+                    }
+                ],
+            ),
+            (
+                get_path,
+                [{"path": path} for path in list(self.config["runpath"].unique())],
+            ),
         ]
 
     @property
@@ -93,8 +127,9 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                         id=map_id,
                         height=600,
                         layers=[],
-                        map_bounds=[[0, 0], [0, 0]],
-                        center=[0, 0],
+                        # uirevision = '',
+                        map_bounds=[[1, 1], [4, 4]],
+                        center=[1, 1],
                         hillShading=True,
                     ),
                 ],
@@ -111,7 +146,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                     children=[
                         self.selector.layout,
                         dash_colorscales.DashColorscales(
-                            id="colorscale-picker", nSwatches=256
+                            id=self._color_scale_id, nSwatches=256
                         ),
                         html.Pre(id="output"),
                     ],
@@ -138,26 +173,28 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 Output(self._low_map_id, "layers"),
                 Output(self._low_map_id, "map_bounds"),
                 Output(self._low_map_id, "center"),
+                Output(self._low_map_id, "uirevision"),
                 Output(self._low_map_label_id, "children"),
                 Output(self._low_map_wrapper_id, "style"),
                 Output(self._base_map_id, "layers"),
                 Output(self._base_map_id, "map_bounds"),
                 Output(self._base_map_id, "center"),
+                Output(self._base_map_id, "uirevision"),
                 Output(self._base_map_label_id, "children"),
                 Output(self._base_map_wrapper_id, "style"),
                 Output(self._high_map_id, "layers"),
                 Output(self._high_map_id, "map_bounds"),
                 Output(self._high_map_id, "center"),
+                Output(self._high_map_id, "uirevision"),
                 Output(self._high_map_label_id, "children"),
                 Output(self._high_map_wrapper_id, "style"),
             ],
             [
                 Input(self.selector.storage_id, "children"),
-                Input("colorscale-picker", "colorscale"),
+                Input(self._color_scale_id, "colorscale"),
             ],
         )
         def _set_base_layer(surface, colorscale):
-
             if not surface:
                 raise PreventUpdate
 
@@ -169,15 +206,17 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             attribute = surface["attribute"]
             date = surface["date"]
             senscases = surface["sens_cases"]
-            colormap = colors.ListedColormap(colorscale) if colorscale else "viridis"
+            colormap = ListedColormap(colorscale) if colorscale else "viridis"
             if senstype == "mc":
                 if not len(senscases) == 1:
                     raise PreventUpdate
                 fns = [
-                    get_surface_path(
-                        self._ensembles, ensemble, real, name, attribute, date
+                    get_path(
+                        get_surface_path(
+                            self._ensembles, ensemble, real, name, attribute, date
+                        )
+                        for real in senscases[0]["realizations"]
                     )
-                    for real in senscases[0]["realizations"]
                 ]
 
                 low = set_base_layer(fns, f"{name} - min", "min", colormap)
@@ -185,12 +224,15 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 high = set_base_layer(fns, f"{name} - max", "max", colormap)
                 return (
                     *low,
+                    str(uuid4()),
                     "Min",
                     {"visibility": "visible"},
                     *base,
+                    str(uuid4()),
                     "Mean",
                     {"visibility": "visible"},
                     *high,
+                    str(uuid4()),
                     "Max",
                     {"visibility": "visible"},
                 )
@@ -199,17 +241,33 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 case_count = 0
                 for case in senscases:
                     fns = [
-                        get_surface_path(
-                            self._ensembles, ensemble, real, name, attribute, date
+                        get_path(
+                            get_surface_path(
+                                self._ensembles, ensemble, real, name, attribute, date
+                            )
+                            for real in case["realizations"]
                         )
-                        for real in case["realizations"]
                     ]
                     map_data = set_base_layer(fns, f"{name} - {case['case']}", "mean")
-                    output.extend([*map_data, case["case"], {"visibility": "visible"}])
+                    output.extend(
+                        [
+                            *map_data,
+                            str(uuid4()),
+                            case["case"],
+                            {"visibility": "visible"},
+                        ]
+                    )
                     case_count += 1
                 while case_count < 3:
                     output.extend(
-                        [[], [[0, 0], [0, 0]], [0, 0], "", {"visibility": "hidden"}]
+                        [
+                            [],
+                            [[1, 1], [4, 4]],
+                            [1, 1],
+                            "renew",
+                            "",
+                            {"visibility": "hidden"},
+                        ]
                     )
                     case_count += 1
                 return output
@@ -240,6 +298,11 @@ def get_surface_path(ensembles, ensemble, realization, name, attribute, date=Non
         / "maps"
         / get_surface_stem(name, attribute, date)
     )
+
+
+@webvizstore
+def get_path(path) -> Path:
+    return path
 
 
 def set_base_layer(

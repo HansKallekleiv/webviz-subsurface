@@ -82,7 +82,9 @@ def find_sens_type(senscase):
 
 
 @CACHE.memoize(timeout=CACHE.TIMEOUT)
-def find_surfaces(ensemble_paths: tuple, suffix="*.gri", delimiter="--"):
+def find_surfaces(
+    ensemble_paths: tuple, suffix="*.gri", delimiter="--"
+) -> pd.DataFrame:
     """Reads surface file names stored in standard FMU format, and returns a dictionary
     on the following format:
     surface_property:
@@ -99,18 +101,13 @@ def find_surfaces(ensemble_paths: tuple, suffix="*.gri", delimiter="--"):
         path = Path(path)
         files += glob.glob(str(path / "share" / "results" / "maps" / suffix))
 
+    file_list = []
+    for fn in files:
+        f_stem = Path(fn).stem.split(delimiter)
+        file_list.append([Path(fn), *f_stem])
     # Store surface name, attribute and date as Pandas dataframe
-    df = pd.DataFrame([Path(f).stem.split(delimiter) for f in files]).rename(
-        columns={0: "name", 1: "attribute", 2: "date"}
+    df = pd.DataFrame(file_list).rename(
+        columns={0: "runpath", 1: "name", 2: "attribute", 3: "date"}
     )
 
-    # Group dataframe by surface attribute and return unique names and dates
-    return {
-        attr: {
-            "names": list(dframe["name"].unique()),
-            "dates": list(dframe["date"].unique())
-            if "date" in dframe.columns
-            else [None],
-        }
-        for attr, dframe in df.groupby("attribute")
-    }
+    return df

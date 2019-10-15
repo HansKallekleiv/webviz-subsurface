@@ -2,6 +2,9 @@ from datetime import datetime
 from uuid import uuid4
 import json
 import yaml
+
+import pandas as pd
+
 import dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -51,8 +54,16 @@ another_property:
         if isinstance(config, str):
             return yaml.safe_load(open(config, "r"))
 
-        if isinstance(config, dict):
-            return config
+        if isinstance(config, pd.DataFrame):
+            return {
+                attr: {
+                    "names": list(dframe["name"].unique()),
+                    "dates": list(dframe["date"].unique())
+                    if "date" in dframe.columns
+                    else [None],
+                }
+                for attr, dframe in config.groupby("attribute")
+            }
 
         raise TypeError("Config must be a dictionary of a yaml file")
 
