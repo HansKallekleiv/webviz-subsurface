@@ -114,8 +114,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             "gridTemplateColumns": f"{columns}",
         }
 
-    @staticmethod
-    def layered_map_layout(wrapper_id, label_id, map_id):
+    def layered_map_layout(self, wrapper_id, label_id, map_id):
         return html.Div(
             id=wrapper_id,
             style={"visibility": "hidden"},
@@ -125,11 +124,13 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                     html.Label(style={"textAlign": "center"}, id=label_id),
                     LayeredMap(
                         id=map_id,
+                        sync_ids=[
+                            self._low_map_id,
+                            self._base_map_id,
+                            self._high_map_id,
+                        ],
                         height=600,
                         layers=[],
-                        # uirevision = '',
-                        map_bounds=[[1, 1], [4, 4]],
-                        center=[1, 1],
                         hillShading=True,
                     ),
                 ],
@@ -171,18 +172,12 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         @app.callback(
             [
                 Output(self._low_map_id, "layers"),
-                Output(self._low_map_id, "map_bounds"),
-                Output(self._low_map_id, "center"),
                 Output(self._low_map_label_id, "children"),
                 Output(self._low_map_wrapper_id, "style"),
                 Output(self._base_map_id, "layers"),
-                Output(self._base_map_id, "map_bounds"),
-                Output(self._base_map_id, "center"),
                 Output(self._base_map_label_id, "children"),
                 Output(self._base_map_wrapper_id, "style"),
                 Output(self._high_map_id, "layers"),
-                Output(self._high_map_id, "map_bounds"),
-                Output(self._high_map_id, "center"),
                 Output(self._high_map_label_id, "children"),
                 Output(self._high_map_wrapper_id, "style"),
             ],
@@ -204,6 +199,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             date = surface["date"]
             senscases = surface["sens_cases"]
             colormap = ListedColormap(colorscale) if colorscale else "viridis"
+            print(colormap)
             if senstype == "mc":
                 if not len(senscases) == 1:
                     raise PreventUpdate
@@ -216,17 +212,23 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                     ]
                 )
 
-                low = set_base_layer(surfaces["min"], f"{name} - min", colormap)
-                base = set_base_layer(surfaces["mean"], f"{name} - mean", colormap)
-                high = set_base_layer(surfaces["max"], f"{name} - max", colormap)
+                low = set_base_layer(
+                    surfaces["min"], f"{name} - min", colormap=colormap
+                )
+                base = set_base_layer(
+                    surfaces["mean"], f"{name} - mean", colormap=colormap
+                )
+                high = set_base_layer(
+                    surfaces["max"], f"{name} - max", colormap=colormap
+                )
                 return (
-                    *low,
+                    low,
                     "Min",
                     {"visibility": "visible"},
-                    *base,
+                    base,
                     "Mean",
                     {"visibility": "visible"},
-                    *high,
+                    high,
                     "Max",
                     {"visibility": "visible"},
                 )
@@ -243,26 +245,12 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                         ]
                     )
                     map_data = set_base_layer(
-                        surfaces["mean"], f"{name} - {case['case']}", "mean"
+                        surfaces["mean"], f"{name} - {case['case']}", colormap=colormap
                     )
-                    output.extend(
-                        [
-                            *map_data,
-                            case["case"],
-                            {"visibility": "visible"},
-                        ]
-                    )
+                    output.extend([map_data, case["case"], {"visibility": "visible"}])
                     case_count += 1
                 while case_count < 3:
-                    output.extend(
-                        [
-                            [],
-                            [[1, 1], [4, 4]],
-                            [1, 1],
-                            "",
-                            {"visibility": "hidden"},
-                        ]
-                    )
+                    output.extend([[], "", {"visibility": "hidden"}])
                     case_count += 1
                 return output
             else:
@@ -303,14 +291,7 @@ def get_path(path) -> Path:
     return path
 
 
-def set_base_layer(
-    surface,
-    name,
-    aggregation="mean",
-    colormap="viridis",
-    min_value=None,
-    max_value=None,
-):
+def set_base_layer(surface, name, colormap="viridis", min_value=None, max_value=None):
     """Given a list of file paths to irap bin surfaces, returns statistical surfaces"""
 
     # Calculate surface arrays
@@ -337,4 +318,4 @@ def set_base_layer(
             }
         ],
     }
-    return [layer], bounds, center
+    return [layer]
