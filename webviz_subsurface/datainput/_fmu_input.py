@@ -82,6 +82,7 @@ def find_sens_type(senscase):
 
 
 @CACHE.memoize(timeout=CACHE.TIMEOUT)
+@webvizstore
 def find_surfaces(
     ensemble_paths: tuple, suffix="*.gri", delimiter="--"
 ) -> pd.DataFrame:
@@ -104,7 +105,7 @@ def find_surfaces(
     file_list = []
     for fn in files:
         f_stem = Path(fn).stem.split(delimiter)
-        file_list.append([Path(fn), *f_stem])
+        file_list.append([str(Path(fn)), *f_stem])
     # Store surface name, attribute and date as Pandas dataframe
     df = pd.DataFrame(file_list).rename(
         columns={0: "runpath", 1: "name", 2: "attribute", 3: "date"}

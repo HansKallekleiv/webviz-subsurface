@@ -97,7 +97,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             ),
             (
                 get_path,
-                [{"path": path} for path in list(self.config["runpath"].unique())],
+                [{"path": Path(path)} for path in list(self.config["runpath"].unique())],
             ),
         ]
 
