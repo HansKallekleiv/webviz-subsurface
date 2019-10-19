@@ -9,6 +9,7 @@ import dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_html_components as html
+import dash_core_components as dcc
 import dash_colorscales
 
 from webviz_config import WebvizContainerABC
@@ -19,6 +20,7 @@ from webviz_subsurface.datainput.layeredmap._image_processing import (
     array_to_png,
 )
 
+from webviz_config.common_cache import CACHE
 from webviz_subsurface.datainput import get_realizations, find_surfaces
 from webviz_subsurface.datainput._surface import calculate_surface_statistics
 from ._surface_selector import SurfaceSelector
@@ -56,24 +58,12 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         self._base_map_wrapper_id = f"{str(uuid4())}-base-wrapper-id"
         self._high_map_wrapper_id = f"{str(uuid4())}-high-wrapper-id"
         self._color_scale_id = f"{str(uuid4())}-color-scale-id"
+        self._min_color_id = f"{str(uuid4())}-min-color-id"
+        self._max_color_id = f"{str(uuid4())}-max-color-id"
         self.selector = SurfaceSelector(app, self.config, self._ensembles)
         self.set_callbacks(app)
 
     def add_webvizstore(self):
-        # surfaces = {
-        #         attr: {
-        #             "names": list(dframe["name"].unique()),
-        #             "dates": list(dframe["date"].unique())
-        #             if "date" in dframe.columns
-        #             else [None],
-        #         }
-        #         for attr, dframe in config.groupby("attribute")
-        #     }
-        # Path(
-        # ensembles.loc[
-        # (ensembles["ENSEMBLE"] == ensemble) & (ensembles["REAL"] == realization)
-        # ]["RUNPATH"].item()
-        # )
 
         return [
             (
@@ -97,7 +87,10 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             ),
             (
                 get_path,
-                [{"path": Path(path)} for path in list(self.config["runpath"].unique())],
+                [
+                    {"path": Path(path)}
+                    for path in list(self.config["runpath"].unique())
+                ],
             ),
         ]
 
@@ -138,20 +131,45 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         )
 
     @property
+    def color_control(self):
+        return html.Div(
+            style={"fontSize": "12px", "marginLeft": "25px"},
+            children=[
+                html.Label("Color settings"),
+                html.Div(
+                    style={"zIndex": 2000},
+                    children=[
+                        dash_colorscales.DashColorscales(
+                            id=self._color_scale_id, nSwatches=256
+                        )
+                    ],
+                ),
+                html.Div(
+                    style=self.set_grid_layout("1fr 1fr"),
+                    children=[
+                        html.Label("Min"),
+                        html.Label("Max"),
+                        dcc.Input(
+                            id=self._min_color_id,
+                            debounce=True,
+                            placeholder="Using surface min",
+                        ),
+                        dcc.Input(
+                            id=self._max_color_id,
+                            debounce=True,
+                            placeholder="Using surface max",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    @property
     def layout(self):
         return html.Div(
             style=self.set_grid_layout("1fr 2fr 2fr 2fr"),
             children=[
-                html.Div(
-                    style={"zIndex": 2000},
-                    children=[
-                        self.selector.layout,
-                        dash_colorscales.DashColorscales(
-                            id=self._color_scale_id, nSwatches=256
-                        ),
-                        html.Pre(id="output"),
-                    ],
-                ),
+                html.Div(children=[self.selector.layout, self.color_control]),
                 self.layered_map_layout(
                     self._low_map_wrapper_id, self._low_map_label_id, self._low_map_id
                 ),
@@ -184,22 +202,27 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             [
                 Input(self.selector.storage_id, "children"),
                 Input(self._color_scale_id, "colorscale"),
+                Input(self._min_color_id, "value"),
+                Input(self._max_color_id, "value"),
             ],
         )
-        def _set_base_layer(surface, colorscale):
-            if not surface:
+        def _set_base_layer(selection, colorscale, min_color, max_color):
+            if not selection:
                 raise PreventUpdate
+            print(min_color)
+            selection = json.loads(selection)
+            ensemble = selection["ensemble"]
+            senstype = selection["senstype"]
+            sensname = selection["sensname"]
+            name = selection["name"]
+            attribute = selection["attribute"]
+            date = selection["date"]
+            senscases = selection["sens_cases"]
+            reference = selection["reference"]
+            mode = selection["mode"]
 
-            surface = json.loads(surface)
-            ensemble = surface["ensemble"]
-            senstype = surface["senstype"]
-            sensname = surface["sensname"]
-            name = surface["name"]
-            attribute = surface["attribute"]
-            date = surface["date"]
-            senscases = surface["sens_cases"]
             colormap = ListedColormap(colorscale) if colorscale else "viridis"
-            print(colormap)
+
             if senstype == "mc":
                 if not len(senscases) == 1:
                     raise PreventUpdate
@@ -211,48 +234,255 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                         for real in senscases[0]["realizations"]
                     ]
                 )
-
-                low = set_base_layer(
-                    surfaces["min"], f"{name} - min", colormap=colormap
-                )
-                base = set_base_layer(
-                    surfaces["mean"], f"{name} - mean", colormap=colormap
-                )
-                high = set_base_layer(
-                    surfaces["max"], f"{name} - max", colormap=colormap
-                )
-                return (
-                    low,
-                    "Min",
-                    {"visibility": "visible"},
-                    base,
-                    "Mean",
-                    {"visibility": "visible"},
-                    high,
-                    "Max",
-                    {"visibility": "visible"},
-                )
-            elif senstype == "scalar":
-                output = []
-                case_count = 0
-                for case in senscases:
-                    surfaces = calculate_surface_statistics(
+                if mode == "relative":
+                    ref_mean = calculate_surface_statistics(
                         [
                             get_surface_path(
                                 self._ensembles, ensemble, real, name, attribute, date
                             )
-                            for real in case["realizations"]
+                            for real in reference["realizations"]
                         ]
+                    )["mean"]
+                    low = surfaces["min"]
+                    low[2] = low[2].copy() - ref_mean[2].copy()
+                    base = ref_mean
+                    high = surfaces["max"]
+                    high[2] = high[2].copy() - ref_mean[2].copy()
+
+                    low = set_base_layer(
+                        low,
+                        f"{name} - min",
+                        colormap=colormap,
+                        min_color=min_color,
+                        max_color=max_color,
                     )
-                    map_data = set_base_layer(
-                        surfaces["mean"], f"{name} - {case['case']}", colormap=colormap
+                    base = set_base_layer(
+                        base,
+                        f"{name} - mean",
+                        colormap=colormap,
+                        min_color=min_color,
+                        max_color=max_color,
                     )
-                    output.extend([map_data, case["case"], {"visibility": "visible"}])
-                    case_count += 1
-                while case_count < 3:
-                    output.extend([[], "", {"visibility": "hidden"}])
-                    case_count += 1
-                return output
+                    high = set_base_layer(
+                        high,
+                        f"{name} - max",
+                        colormap=colormap,
+                        min_color=min_color,
+                        max_color=max_color,
+                    )
+                    return (
+                        low,
+                        "Low - reference mean",
+                        {"visibility": "visible"},
+                        base,
+                        "Reference mean",
+                        {"visibility": "visible"},
+                        high,
+                        "High - Reference mean",
+                        {"visibility": "visible"},
+                    )
+                else:
+                    low = surfaces["min"]
+                    base = surfaces["mean"]
+                    high = surfaces["max"]
+
+                    low = set_base_layer(
+                        low,
+                        f"{name} - min",
+                        colormap=colormap,
+                        min_color=min_color,
+                        max_color=max_color,
+                    )
+                    base = set_base_layer(
+                        base,
+                        f"{name} - mean",
+                        colormap=colormap,
+                        min_color=min_color,
+                        max_color=max_color,
+                    )
+                    high = set_base_layer(
+                        high,
+                        f"{name} - max",
+                        colormap=colormap,
+                        min_color=min_color,
+                        max_color=max_color,
+                    )
+                    return (
+                        low,
+                        "Low",
+                        {"visibility": "visible"},
+                        base,
+                        "Mean",
+                        {"visibility": "visible"},
+                        high,
+                        "High",
+                        {"visibility": "visible"},
+                    )
+            elif senstype == "scalar":
+                if len(senscases) == 2:
+
+                    case1_mean = calculate_surface_statistics(
+                        [
+                            get_surface_path(
+                                self._ensembles, ensemble, real, name, attribute, date
+                            )
+                            for real in senscases[0]["realizations"]
+                        ]
+                    )["mean"]
+                    case2_mean = calculate_surface_statistics(
+                        [
+                            get_surface_path(
+                                self._ensembles, ensemble, real, name, attribute, date
+                            )
+                            for real in senscases[1]["realizations"]
+                        ]
+                    )["mean"]
+
+                    if mode == "relative":
+                        ref_mean = calculate_surface_statistics(
+                            [
+                                get_surface_path(
+                                    self._ensembles,
+                                    ensemble,
+                                    real,
+                                    name,
+                                    attribute,
+                                    date,
+                                )
+                                for real in reference["realizations"]
+                            ]
+                        )["mean"]
+                        case1_mean[2] = case1_mean[2].copy() - ref_mean[2].copy()
+                        case2_mean[2] = case2_mean[2].copy() - ref_mean[2].copy()
+                        low = set_base_layer(
+                            case1_mean,
+                            f"{name} - min",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        base = set_base_layer(
+                            ref_mean,
+                            f"{name} - mean",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        high = set_base_layer(
+                            case2_mean,
+                            f"{name} - max",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        return (
+                            low,
+                            f"{senscases[0]['case']} - reference mean",
+                            {"visibility": "visible"},
+                            base,
+                            "Reference mean",
+                            {"visibility": "visible"},
+                            high,
+                            f"{senscases[1]['case']} - reference mean",
+                            {"visibility": "visible"},
+                        )
+                    else:
+                        low = set_base_layer(
+                            case1_mean,
+                            f"{name} - min",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        high = set_base_layer(
+                            case2_mean,
+                            f"{name} - max",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        return (
+                            low,
+                            f"{senscases[0]['case']}",
+                            {"visibility": "visible"},
+                            high,
+                            f"{senscases[1]['case']}",
+                            {"visibility": "visible"},
+                            [],
+                            "",
+                            {"visibility": "hidden"},
+                        )
+                if len(senscases) == 1:
+                    case1_mean = calculate_surface_statistics(
+                        [
+                            get_surface_path(
+                                self._ensembles, ensemble, real, name, attribute, date
+                            )
+                            for real in senscases[0]["realizations"]
+                        ]
+                    )["mean"]
+                    if mode == "relative":
+                        ref_mean = calculate_surface_statistics(
+                            [
+                                get_surface_path(
+                                    self._ensembles,
+                                    ensemble,
+                                    real,
+                                    name,
+                                    attribute,
+                                    date,
+                                )
+                                for real in reference["realizations"]
+                            ]
+                        )["mean"]
+                        case1_mean[2] = case1_mean[2].copy() - ref_mean[2].copy()
+                        low = set_base_layer(
+                            case1_mean,
+                            f"{name} - min",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        base = set_base_layer(
+                            ref_mean,
+                            f"{name} - mean",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+                        return (
+                            low,
+                            f"{senscases[0]['case']} - reference mean",
+                            {"visibility": "visible"},
+                            base,
+                            "Reference mean",
+                            {"visibility": "visible"},
+                            [],
+                            "",
+                            {"visibility": "hidden"},
+                        )
+                    else:
+                        low = set_base_layer(
+                            case1_mean,
+                            f"{name} - min",
+                            colormap=colormap,
+                            min_color=min_color,
+                            max_color=max_color,
+                        )
+
+                        return (
+                            low,
+                            f"{senscases[0]['case']}",
+                            {"visibility": "visible"},
+                            [],
+                            "",
+                            {"visibility": "hidden"},
+                            [],
+                            "",
+                            {"visibility": "hidden"},
+                        )
+                else:
+                    raise PreventUpdate
             else:
                 raise PreventUpdate
 
@@ -291,7 +521,7 @@ def get_path(path) -> Path:
     return path
 
 
-def set_base_layer(surface, name, colormap="viridis", min_value=None, max_value=None):
+def set_base_layer(surface, name, colormap="viridis", min_color=None, max_color=None):
     """Given a list of file paths to irap bin surfaces, returns statistical surfaces"""
 
     # Calculate surface arrays
@@ -313,8 +543,8 @@ def set_base_layer(surface, name, colormap="viridis", min_value=None, max_value=
                 "url": array_to_png(surface[2].copy()),
                 "colormap": get_colormap(colormap),
                 "bounds": bounds,
-                "minvalue": min_value if min_value else f"{surface[2].min():.2f}",
-                "maxvalue": max_value if max_value else f"{surface[2].max():.2f}",
+                "minvalue": min_color if min_color else f"{surface[2].min():.2f}",
+                "maxvalue": max_color if max_color else f"{surface[2].max():.2f}",
             }
         ],
     }

@@ -95,9 +95,12 @@ another_property:
         self.real_wrapper_id = f"{uuid}-real-wrapper"
         self.aggreal_id = f"{uuid}-aggreal"
         self.sens_name_id = f"{uuid}-sens-name-id"
+        self.sens_ref_id = f"{uuid}-sens-ref-id"
         self.sens_case_id = f"{uuid}-sens-case-id"
         self.sens_name_wrapper_id = f"{uuid}-sens-name-wrapper-id"
+        self.sens_ref_wrapper_id = f"{uuid}-sens-ref-wrapper-id"
         self.sens_case_wrapper_id = f"{uuid}-sens-case-wrapper-id"
+        self.calculation_id = f"{uuid}-calculation-id"
 
     @property
     def attrs(self):
@@ -208,6 +211,32 @@ another_property:
             ],
         )
 
+    @property
+    def sensitivity_ref_selector(self):
+        return html.Div(
+            id=self.sens_ref_wrapper_id,
+            children=[
+                html.Label("Sensitivity reference"),
+                dcc.Dropdown(id=self.sens_ref_id, clearable=False),
+            ],
+        )
+
+    @property
+    def calculation_mode(self):
+        return html.Div(
+            children=[
+                html.Label("Calculation mode"),
+                dcc.RadioItems(
+                    id=self.calculation_id,
+                    options=[
+                        {"label": "P10/Mean/P90", "value": "absolute"},
+                        {"label": "Relative to reference", "value": "relative"},
+                    ],
+                    value="absolute",
+                ),
+            ]
+        )
+
     @staticmethod
     def set_grid_layout(columns):
         return {
@@ -232,6 +261,8 @@ another_property:
                 ),
                 self.ensemble_selector,
                 self.sensitivity_selector,
+                self.calculation_mode,
+                self.sensitivity_ref_selector,
                 dcc.Store(id=self.storage_id),
             ],
         )
@@ -291,6 +322,23 @@ another_property:
             return options, value, {}
 
         @app.callback(
+            [
+                Output(self.sens_ref_id, "options"),
+                Output(self.sens_ref_id, "value"),
+                Output(self.sens_ref_wrapper_id, "style"),
+            ],
+            [Input(self.ensemble_id, "value")],
+            [State(self.sens_ref_id, "value")],
+        )
+        def _update_sens_ref(ensemble, current_value):
+            sens_names = self.sens_names(ensemble)
+            if not sens_names:
+                return [], None, {"visibility": "hidden"}
+            value = current_value if current_value in sens_names else sens_names[0]
+            options = [{"value": sens, "label": sens} for sens in sens_names]
+            return options, value, {}
+
+        @app.callback(
             Output(self.storage_id, "children"),
             [
                 Input(self.attr_id, "value"),
@@ -298,9 +346,11 @@ another_property:
                 Input(self.date_id, "value"),
                 Input(self.ensemble_id, "value"),
                 Input(self.sens_name_id, "value"),
+                Input(self.sens_ref_id, "value"),
+                Input(self.calculation_id, "value"),
             ],
         )
-        def _set_data(attr, name, date, ensemble, sens_name):
+        def _set_data(attr, name, date, ensemble, sens_name, sens_ref, calculation_mode):
 
             """
             Stores current selections to dcc.Store. The information can
@@ -315,6 +365,14 @@ another_property:
                 raise PreventUpdate
             if not self.get_sens_type(ensemble, sens_name):
                 raise PreventUpdate
+            if not self.get_sens_type(ensemble, sens_ref):
+                raise PreventUpdate
+
+            ref_realizations = [
+                r
+                for case in self.sens_cases(ensemble, sens_ref)
+                for r in self.realizations(ensemble, sens_ref, case)
+            ]
 
             sens_cases = [
                 {
@@ -332,6 +390,8 @@ another_property:
                     "sensname": sens_name,
                     "senstype": self.get_sens_type(ensemble, sens_name),
                     "sens_cases": sens_cases,
+                    "reference": {"name": sens_ref, "realizations": ref_realizations},
+                    "mode": calculation_mode
                 }
             )
 
