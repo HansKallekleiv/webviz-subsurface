@@ -12,8 +12,10 @@ import dash_html_components as html
 import dash_core_components as dcc
 import dash_colorscales
 
+
 from webviz_config import WebvizContainerABC
 from webviz_config.webviz_store import webvizstore
+from webviz_core_components import Graph
 from webviz_subsurface_components import LayeredMap
 from webviz_subsurface.datainput.layeredmap._image_processing import (
     get_colormap,
@@ -57,6 +59,9 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
         self._low_map_wrapper_id = f"{str(uuid4())}-low-wrapper-id"
         self._base_map_wrapper_id = f"{str(uuid4())}-base-wrapper-id"
         self._high_map_wrapper_id = f"{str(uuid4())}-high-wrapper-id"
+        self._low_map_graph_id = f"{str(uuid4())}-low-graph-id"
+        self._base_map_graph_id = f"{str(uuid4())}-base-graph-id"
+        self._high_map_graph_id = f"{str(uuid4())}-high-graph-id"
         self._color_scale_id = f"{str(uuid4())}-color-scale-id"
         self._min_color_id = f"{str(uuid4())}-min-color-id"
         self._max_color_id = f"{str(uuid4())}-max-color-id"
@@ -107,27 +112,19 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             "gridTemplateColumns": f"{columns}",
         }
 
-    def layered_map_layout(self, wrapper_id, label_id, map_id):
+    def layered_map_layout(self, label_id, map_id):
         return html.Div(
-            id=wrapper_id,
-            style={"visibility": "hidden"},
-            children=html.Div(
-                style={"margin": "10px"},
-                children=[
-                    html.Label(style={"textAlign": "center"}, id=label_id),
-                    LayeredMap(
-                        id=map_id,
-                        sync_ids=[
-                            self._low_map_id,
-                            self._base_map_id,
-                            self._high_map_id,
-                        ],
-                        height=600,
-                        layers=[],
-                        hillShading=True,
-                    ),
-                ],
-            ),
+            style={"margin": "10px"},
+            children=[
+                html.Label(style={"textAlign": "center"}, id=label_id),
+                LayeredMap(
+                    id=map_id,
+                    sync_ids=[self._low_map_id, self._base_map_id, self._high_map_id],
+                    height=400,
+                    layers=[],
+                    hillShading=True,
+                ),
+            ],
         )
 
     @property
@@ -170,18 +167,35 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
             style=self.set_grid_layout("1fr 2fr 2fr 2fr"),
             children=[
                 html.Div(children=[self.selector.layout, self.color_control]),
-                self.layered_map_layout(
-                    self._low_map_wrapper_id, self._low_map_label_id, self._low_map_id
+                html.Div(
+                    id=self._low_map_wrapper_id,
+                    style={"visibility": "hidden"},
+                    children=[
+                        self.layered_map_layout(
+                            self._low_map_label_id, self._low_map_id
+                        ),
+                        Graph(id=self._low_map_graph_id),
+                    ],
                 ),
-                self.layered_map_layout(
-                    self._base_map_wrapper_id,
-                    self._base_map_label_id,
-                    self._base_map_id,
+                html.Div(
+                    id=self._base_map_wrapper_id,
+                    style={"visibility": "hidden"},
+                    children=[
+                        self.layered_map_layout(
+                            self._base_map_label_id, self._base_map_id
+                        ),
+                        Graph(id=self._base_map_graph_id),
+                    ],
                 ),
-                self.layered_map_layout(
-                    self._high_map_wrapper_id,
-                    self._high_map_label_id,
-                    self._high_map_id,
+                html.Div(
+                    id=self._high_map_wrapper_id,
+                    style={"visibility": "hidden"},
+                    children=[
+                        self.layered_map_layout(
+                            self._high_map_label_id, self._high_map_id
+                        ),
+                        Graph(id=self._high_map_graph_id),
+                    ],
                 ),
             ],
         )
@@ -192,12 +206,15 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                 Output(self._low_map_id, "layers"),
                 Output(self._low_map_label_id, "children"),
                 Output(self._low_map_wrapper_id, "style"),
+                Output(self._low_map_graph_id, "figure"),
                 Output(self._base_map_id, "layers"),
                 Output(self._base_map_label_id, "children"),
                 Output(self._base_map_wrapper_id, "style"),
+                Output(self._base_map_graph_id, "figure"),
                 Output(self._high_map_id, "layers"),
                 Output(self._high_map_label_id, "children"),
                 Output(self._high_map_wrapper_id, "style"),
+                Output(self._high_map_graph_id, "figure"),
             ],
             [
                 Input(self.selector.storage_id, "children"),
@@ -243,80 +260,86 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                             for real in reference["realizations"]
                         ]
                     )["mean"]
-                    low = surfaces["min"]
+                    low = surfaces["p10"]
                     low[2] = low[2].copy() - ref_mean[2].copy()
                     base = ref_mean
                     high = surfaces["max"]
                     high[2] = high[2].copy() - ref_mean[2].copy()
 
-                    low = set_base_layer(
+                    low_map = set_base_layer(
                         low,
-                        f"{name} - min",
+                        f"{name} - p10",
                         colormap=colormap,
                         min_color=min_color,
                         max_color=max_color,
                     )
-                    base = set_base_layer(
+                    base_map = set_base_layer(
                         base,
                         f"{name} - mean",
                         colormap=colormap,
                         min_color=min_color,
                         max_color=max_color,
                     )
-                    high = set_base_layer(
+                    high_map = set_base_layer(
                         high,
-                        f"{name} - max",
+                        f"{name} - p90",
                         colormap=colormap,
                         min_color=min_color,
                         max_color=max_color,
                     )
                     return (
-                        low,
-                        "Low - reference mean",
+                        low_map,
+                        "P10 - reference mean",
                         {"visibility": "visible"},
-                        base,
+                        {"data": [{"y": low[2].compressed(), "type": "histogram"}]},
+                        base_map,
                         "Reference mean",
                         {"visibility": "visible"},
-                        high,
-                        "High - Reference mean",
+                        {"data": [{"y": base[2].compressed(), "type": "histogram"}]},
+                        high_map,
+                        "P90 - Reference mean",
                         {"visibility": "visible"},
+                        {"data": [{"y": high[2].compressed(), "type": "histogram"}]},
                     )
                 else:
-                    low = surfaces["min"]
+                    low = surfaces["p10"]
                     base = surfaces["mean"]
-                    high = surfaces["max"]
+                    high = surfaces["p90"]
 
-                    low = set_base_layer(
+                    low_map = set_base_layer(
                         low,
-                        f"{name} - min",
+                        f"{name} - p10",
                         colormap=colormap,
                         min_color=min_color,
                         max_color=max_color,
                     )
-                    base = set_base_layer(
+                    base_map = set_base_layer(
                         base,
                         f"{name} - mean",
                         colormap=colormap,
                         min_color=min_color,
                         max_color=max_color,
                     )
-                    high = set_base_layer(
+                    high_map = set_base_layer(
                         high,
-                        f"{name} - max",
+                        f"{name} - p90",
                         colormap=colormap,
                         min_color=min_color,
                         max_color=max_color,
                     )
                     return (
-                        low,
-                        "Low",
+                        low_map,
+                        "P10",
                         {"visibility": "visible"},
-                        base,
+                        {"data": [{"y": low[2].compressed(), "type": "histogram"}]},
+                        base_map,
                         "Mean",
                         {"visibility": "visible"},
-                        high,
-                        "High",
+                        {"data": [{"y": base[2].compressed(), "type": "histogram"}]},
+                        high_map,
+                        "P90",
                         {"visibility": "visible"},
+                        {"data": [{"y": high[2].compressed(), "type": "histogram"}]},
                     )
             elif senstype == "scalar":
                 if len(senscases) == 2:
@@ -356,7 +379,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                         case2_mean[2] = case2_mean[2].copy() - ref_mean[2].copy()
                         low = set_base_layer(
                             case1_mean,
-                            f"{name} - min",
+                            f"{name} - Mean",
                             colormap=colormap,
                             min_color=min_color,
                             max_color=max_color,
@@ -370,7 +393,7 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                         )
                         high = set_base_layer(
                             case2_mean,
-                            f"{name} - max",
+                            f"{name} - Mean",
                             colormap=colormap,
                             min_color=min_color,
                             max_color=max_color,
@@ -379,24 +402,45 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                             low,
                             f"{senscases[0]['case']} - reference mean",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {
+                                        "y": case1_mean[2].compressed(),
+                                        "type": "histogram",
+                                    }
+                                ]
+                            },
                             base,
                             "Reference mean",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {"y": ref_mean[2].compressed(), "type": "histogram"}
+                                ]
+                            },
                             high,
                             f"{senscases[1]['case']} - reference mean",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {
+                                        "y": case2_mean[2].compressed(),
+                                        "type": "histogram",
+                                    }
+                                ]
+                            },
                         )
                     else:
                         low = set_base_layer(
                             case1_mean,
-                            f"{name} - min",
+                            f"{name} - Mean",
                             colormap=colormap,
                             min_color=min_color,
                             max_color=max_color,
                         )
                         high = set_base_layer(
                             case2_mean,
-                            f"{name} - max",
+                            f"{name} - Mean",
                             colormap=colormap,
                             min_color=min_color,
                             max_color=max_color,
@@ -405,12 +449,29 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                             low,
                             f"{senscases[0]['case']}",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {
+                                        "y": case1_mean[2].compressed(),
+                                        "type": "histogram",
+                                    }
+                                ]
+                            },
                             high,
                             f"{senscases[1]['case']}",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {
+                                        "y": case2_mean[2].compressed(),
+                                        "type": "histogram",
+                                    }
+                                ]
+                            },
                             [],
                             "",
                             {"visibility": "hidden"},
+                            {"data": []},
                         )
                 if len(senscases) == 1:
                     case1_mean = calculate_surface_statistics(
@@ -454,12 +515,26 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                             low,
                             f"{senscases[0]['case']} - reference mean",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {
+                                        "y": case1_mean[2].compressed(),
+                                        "type": "histogram",
+                                    }
+                                ]
+                            },
                             base,
                             "Reference mean",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {"y": ref_mean[2].compressed(), "type": "histogram"}
+                                ]
+                            },
                             [],
                             "",
                             {"visibility": "hidden"},
+                            {"data": []},
                         )
                     else:
                         low = set_base_layer(
@@ -474,12 +549,22 @@ class SurfaceViewerOneByOne(WebvizContainerABC):
                             low,
                             f"{senscases[0]['case']}",
                             {"visibility": "visible"},
+                            {
+                                "data": [
+                                    {
+                                        "y": case1_mean[2].compressed(),
+                                        "type": "histogram",
+                                    }
+                                ]
+                            },
                             [],
                             "",
                             {"visibility": "hidden"},
+                            {"data": []},
                             [],
                             "",
                             {"visibility": "hidden"},
+                            {"data": []},
                         )
                 else:
                     raise PreventUpdate
