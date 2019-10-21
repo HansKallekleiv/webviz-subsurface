@@ -30,8 +30,8 @@ def nan_percentile(arr, q):
     # valid (non NaN) observations along the first axis
     valid_obs = np.sum(np.isfinite(arr), axis=0)
     # replace NaN with maximum
-    max_val = np.nanmax(arr)
-    arr[np.isnan(arr)] = max_val
+    # max_val = np.nanmin(arr)
+    # arr[np.isnan(arr)] = max_val
     # sort - former NaNs will move to the end
     arr = np.sort(arr, axis=0)
 
