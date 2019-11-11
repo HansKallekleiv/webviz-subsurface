@@ -261,6 +261,7 @@ The plots are linked and updates are done by clicking in the plots.
             """
             store = json.loads(store)
             ctx = dash.callback_context.triggered[0]["prop_id"]
+            print(ctx)
             x_was_clicked = (
                 xcd if xcd and ctx == f"{self.xline_map_id}.clickData" else None
             )
@@ -301,7 +302,7 @@ The plots are linked and updates are done by clicking in the plots.
             if not state:
                 raise PreventUpdate
             state = json.loads(state)
-            cube = load_cube_data(state["cubepath"])
+            cube = load_cube_data(get_path(Path(state["cubepath"])))
             shapes = [
                 {
                     "type": "line",
@@ -348,7 +349,7 @@ The plots are linked and updates are done by clicking in the plots.
             if not state:
                 raise PreventUpdate
             state = json.loads(state)
-            cube = load_cube_data(state["cubepath"])
+            cube = load_cube_data(get_path(Path(state["cubepath"])))
             shapes = [
                 {
                     "type": "line",
@@ -392,7 +393,7 @@ The plots are linked and updates are done by clicking in the plots.
             if not state:
                 raise PreventUpdate
             state = json.loads(state)
-            cube = load_cube_data(state["cubepath"])
+            cube = load_cube_data(get_path(Path(state["cubepath"])))
             shapes = [
                 {
                     "type": "line",
