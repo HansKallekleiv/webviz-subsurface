@@ -578,11 +578,11 @@ def add_realization_traces(dframe, vector, colors):
     """Renders line trace for each realization, includes history line if present"""
     traces = [
         {
-            # "type": "linegl",
+            "type": "scattergl",
             "x": list(real_df["DATE"]),
             "y": list(real_df[vector]),
             "hovertext": f"Realization: {real_no}, Ensemble: {ensemble}",
-            "name": ensemble,
+            # "hoverinfo":None,
             "legendgroup": ensemble,
             "marker": {"color": colors.get(ensemble, colors[list(colors.keys())[0]])},
             "showlegend": real_no == 0,
@@ -590,9 +590,14 @@ def add_realization_traces(dframe, vector, colors):
         for ens_no, (ensemble, ens_df) in enumerate(dframe.groupby("ENSEMBLE"))
         for real_no, (real, real_df) in enumerate(ens_df.groupby("REAL"))
     ]
-
-    if f"{vector}H" in dframe.columns:
-        traces.append(add_history_trace(dframe, f"{vector}H"))
+    for ens_no, (ensemble, ens_df) in enumerate(dframe.groupby("ENSEMBLE")):
+        for real_no, (real, real_df) in enumerate(ens_df.groupby("REAL")):
+            print(real_df)
+            # for date_no, (date, date_df) in enumerate(real_df.groupby("DATE")):
+                # print(date_df)
+            break
+    # if f"{vector}H" in dframe.columns:
+        # traces.append(add_history_trace(dframe, f"{vector}H"))
     return traces
 
 

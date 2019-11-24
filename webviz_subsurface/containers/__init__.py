@@ -38,6 +38,7 @@ from ._reservoir_simulation_timeseries_onebyone import (
 )
 from ._segy_viewer import SegyViewer
 from ._well_cross_section import WellCrossSection
+from ._faster_time_series import FasterTimeSeries
 
 
 __all__ = [
@@ -54,4 +55,5 @@ __all__ = [
     "ReservoirSimulationTimeSeriesOneByOne",
     "SegyViewer",
     "WellCrossSection",
+    "FasterTimeSeries"
 ]
