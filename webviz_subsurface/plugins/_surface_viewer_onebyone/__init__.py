@@ -15,14 +15,14 @@ from webviz_config import WebvizPluginABC
 from webviz_config.webviz_store import webvizstore
 import webviz_core_components as wcc
 from webviz_subsurface_components import LayeredMap
-from webviz_subsurface.datainput.layeredmap._image_processing import (
+from webviz_subsurface._datainput.image_processing import (
     get_colormap,
     array_to_png,
 )
 
 from webviz_config.common_cache import CACHE
-from webviz_subsurface.datainput import get_realizations, find_surfaces
-from webviz_subsurface.datainput._surface import calculate_surface_statistics
+from webviz_subsurface._datainput.fmu_input import get_realizations, find_surfaces
+from webviz_subsurface._datainput.surface import calculate_surface_statistics
 from ._surface_selector import SurfaceSelector
 
 
@@ -31,11 +31,12 @@ class SurfaceViewerOneByOne(WebvizPluginABC):
     Visualizes statistical surfaces for one-by-one sensitivity cases
 """
 
-    def __init__(self, app, container_settings, ensembles):
+    def __init__(self, app, ensembles):
 
-        self.ens_paths = tuple(
-            (ens, container_settings["scratch_ensembles"][ens]) for ens in ensembles
-        )
+        self.ens_paths = {
+                ens: app.webviz_settings["shared_settings"]["scratch_ensembles"][ens]
+                for ens in ensembles
+            }
 
         # Find surfaces
         self.config = find_surfaces(

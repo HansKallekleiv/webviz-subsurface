@@ -99,14 +99,7 @@ def find_sens_type(senscase):
 
 
 @CACHE.memoize(timeout=CACHE.TIMEOUT)
-<<<<<<< HEAD:webviz_subsurface/datainput/_fmu_input.py
-@webvizstore
-def find_surfaces(
-    ensemble_paths: tuple, suffix="*.gri", delimiter="--"
-) -> pd.DataFrame:
-=======
 def find_surfaces(ensemble_paths: dict, suffix="*.gri", delimiter="--"):
->>>>>>> upstream/master:webviz_subsurface/_datainput/fmu_input.py
     """Reads surface file names stored in standard FMU format, and returns a dictionary
     on the following format:
     surface_property:
