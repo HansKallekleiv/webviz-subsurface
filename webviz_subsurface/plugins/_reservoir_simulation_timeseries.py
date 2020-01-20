@@ -514,6 +514,7 @@ Plot options:
                 if "xaxis6" in fig["layout"]:
                     fig["layout"]["xaxis6"]["matches"] = None
                     fig["layout"]["xaxis6"]["showticklabels"] = True
+            print(fig)
             return fig
 
         @app.callback(

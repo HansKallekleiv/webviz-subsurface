@@ -42,6 +42,7 @@ def make_surface_layer(
     bounds = [[np.min(arr[0]), np.min(arr[1])], [np.max(arr[0]), np.max(arr[1])]]
     min_val = min_val if min_val else np.min(arr[2])
     max_val = max_val if max_val else np.max(arr[2])
+    print(arr[2].mean())
     return {
         "name": name,
         "checked": True,
@@ -53,8 +54,8 @@ def make_surface_layer(
                 "colormap": get_colormap(color),
                 "bounds": bounds,
                 "allowHillshading": hillshading,
-                "minvalue": f"{min_val:.2f}" if min_val else None,
-                "maxvalue": f"{max_val:.2f}" if max_val else None,
+                # "minvalue": f"{min_val:.2f}" if min_val else None,
+                # "maxvalue": f"{max_val:.2f}" if max_val else None,
                 "unit": unit,
             }
         ],
