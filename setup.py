@@ -42,6 +42,7 @@ setup(
             + "webviz_subsurface.plugins:ParameterParallelCoordinates",
             "RunningTimeAnalysisFMU = webviz_subsurface.plugins:RunningTimeAnalysisFMU",
             "RelativePermeability = webviz_subsurface.plugins:RelativePermeability",
+            "ImageCrossSection = webviz_subsurface.plugins:ImageCrossSection",
         ]
     },
     install_requires=[
