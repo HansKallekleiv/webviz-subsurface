@@ -347,14 +347,7 @@ folder, to avoid risk of not extracting the right data.
                         multi=False,
                         clearable=False,
                     )
-                children.append(
-                    html.Div(
-                        children=[
-                            html.Label(col_name),
-                            selector,
-                        ]
-                    )
-                )
+                children.append(html.Div(children=[html.Label(col_name), selector,]))
         return [
             html.Div(
                 id=self.uuid("view_response"),
@@ -381,6 +374,7 @@ folder, to avoid risk of not extracting the right data.
                             ],
                             value="ensemble",
                             labelStyle={"display": "inline-block"},
+                            persistence=True,
                         ),
                     ]
                 )
@@ -395,15 +389,14 @@ folder, to avoid risk of not extracting the right data.
                 multi=True,
                 value=self.ensembles,
                 size=min(len(self.ensembles), 10),
+                persistence=True,
             ),
             html.Label(
                 children=[
                     html.Span(
                         "Parameters:",
                         id=self.uuid("parameters"),
-                        style={
-                            "font-weight": "bold",
-                        },
+                        style={"font-weight": "bold",},
                     ),
                     dcc.RadioItems(
                         id=self.uuid("exclude_include"),
@@ -414,6 +407,7 @@ folder, to avoid risk of not extracting the right data.
                         value="exc",
                         labelStyle={"display": "inline-block"},
                         style={"fontSize": ".80em"},
+                        persistence=True,
                     ),
                 ]
             ),
@@ -428,6 +422,7 @@ folder, to avoid risk of not extracting the right data.
                     "fontSize": ".80em",
                     "overflowX": "auto",
                 },
+                persistence=True,
             ),
         ]
 
@@ -442,10 +437,7 @@ folder, to avoid risk of not extracting the right data.
                     children=(self.control_layout + self.response_layout),
                 ),
                 html.Div(
-                    style={"flex": 3},
-                    children=wcc.Graph(
-                        id=self.uuid("parcoords"),
-                    ),
+                    style={"flex": 3}, children=wcc.Graph(id=self.uuid("parcoords"),),
                 ),
             ],
         )
@@ -484,8 +476,7 @@ folder, to avoid risk of not extracting the right data.
 
     def set_callbacks(self, app):
         @app.callback(
-            Output(self.uuid("parcoords"), "figure"),
-            self.parcoord_inputs,
+            Output(self.uuid("parcoords"), "figure"), self.parcoord_inputs,
         )
         def _update_parcoord(ens, exc_inc, parameter_list, *opt_args):
             """Updates parallel coordinates plot
@@ -569,38 +560,11 @@ folder, to avoid risk of not extracting the right data.
     def add_webvizstore(self):
         functions = []
         if self.parameter_csv:
-            functions.append(
-                (
-                    read_csv,
-                    [
-                        {
-                            "csv_file": self.parameter_csv,
-                        }
-                    ],
-                )
-            )
+            functions.append((read_csv, [{"csv_file": self.parameter_csv,}],))
             if self.response_csv:
-                functions.append(
-                    (
-                        read_csv,
-                        [
-                            {
-                                "csv_file": self.response_csv,
-                            }
-                        ],
-                    )
-                )
+                functions.append((read_csv, [{"csv_file": self.response_csv,}],))
         else:
-            functions.append(
-                (
-                    load_parameters,
-                    [
-                        {
-                            "ensemble_paths": self.ens_paths,
-                        }
-                    ],
-                ),
-            )
+            functions.append((load_parameters, [{"ensemble_paths": self.ens_paths,}],),)
             if not self.no_responses:
                 if self.response_file:
                     functions.append(

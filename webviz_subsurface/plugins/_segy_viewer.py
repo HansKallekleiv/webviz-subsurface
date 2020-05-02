@@ -162,6 +162,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                 ],
                                 value=self.segyfiles[0],
                                 clearable=False,
+                                persistence=True,
                             ),
                         ]
                     ),
@@ -201,6 +202,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                 max_value=self.init_state["max_value"],
                                 steps=100,
                             ),
+                            persistence=True,
                         ),
                     ],
                 ),
@@ -248,7 +250,9 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         ],
                     ),
                     dcc.Store(
-                        id=self.ids("state-storage"), data=json.dumps(self.init_state)
+                        id=self.ids("state-storage"),
+                        data=json.dumps(self.init_state),
+                        storage_type="local",
                     ),
                 ]
             ),

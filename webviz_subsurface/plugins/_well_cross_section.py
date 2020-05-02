@@ -114,6 +114,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         ],
                         value=self.wellfiles[0],
                         clearable=False,
+                        persistence=True,
                     ),
                 ]
             ),
@@ -136,6 +137,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         else None,
                         value=self.segyfiles[0] if self.segyfiles else None,
                         clearable=False,
+                        persistence=True,
                     ),
                 ]
             ),
@@ -152,9 +154,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
             value.append("show_zonelog")
 
         return dcc.Checklist(
-            id=self.ids("options"),
-            options=options,
-            value=value,
+            id=self.ids("options"), options=options, value=value, persistence=True,
         )
 
     @property
@@ -171,6 +171,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                 debounce=True,
                                 type="number",
                                 value=self.sampling,
+                                persistence=True,
                             ),
                         ]
                     )
@@ -184,6 +185,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                 debounce=True,
                                 type="number",
                                 value=self.nextend,
+                                persistence=True,
                             ),
                         ]
                     )
@@ -202,10 +204,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         self.well_options,
                         self.seismic_layout,
                         self.viz_options_layout,
-                        html.Button(
-                            id=self.ids("show_map"),
-                            children="Show map",
-                        ),
+                        html.Button(id=self.ids("show_map"), children="Show map",),
                     ],
                 ),
                 html.Div(
@@ -310,8 +309,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
             return style, btn
 
         @app.callback(
-            Output(self.ids("map"), "layers"),
-            [Input(self.ids("wells"), "value")],
+            Output(self.ids("map"), "layers"), [Input(self.ids("wells"), "value")],
         )
         def _render_surface(wellfile):
             """Update map"""
@@ -319,10 +317,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
             wellfile = get_path(wellfile)
             surface = load_surface(get_path(self.surfacefiles[0]))
             well = load_well(wellfile)
-            s_layer = make_surface_layer(
-                surface,
-                name=self.surfacenames[0],
-            )
+            s_layer = make_surface_layer(surface, name=self.surfacenames[0],)
             well_layer = make_well_layer(well, wellname)
             return [s_layer, well_layer]
 

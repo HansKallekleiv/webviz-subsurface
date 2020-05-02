@@ -213,6 +213,7 @@ aggregated_data/parameters.csv)
                             {"label": i, "value": i}
                             for i in list(self.volumes[column].unique())
                         ],
+                        persistence=True,
                         clearable=False,
                         value=list(self.volumes[column])[0],
                     ),
@@ -321,6 +322,7 @@ aggregated_data/parameters.csv)
                     ],
                     value="Per realization",
                     clearable=False,
+                    persistence=True,
                 ),
             ]
         )
@@ -339,6 +341,7 @@ aggregated_data/parameters.csv)
                             for i in self.responses
                         ],
                         clearable=False,
+                        persistence=True,
                         value=self.initial_response
                         if self.initial_response in self.responses
                         else self.responses[0],
@@ -365,6 +368,7 @@ aggregated_data/parameters.csv)
                                 ],
                                 value=list(self.volumes[selector].unique()),
                                 multi=True,
+                                persistence=True,
                                 size=min(20, len(self.volumes[selector].unique())),
                             ),
                         ],

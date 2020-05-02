@@ -161,6 +161,7 @@ class TornadoPlot:
                                     ],
                                     value=self.initial_reference,
                                     clearable=False,
+                                    persistence=True,
                                 ),
                                 dcc.Dropdown(
                                     id=self.ids("scale"),
@@ -170,6 +171,7 @@ class TornadoPlot:
                                     ],
                                     value="Percentage",
                                     clearable=False,
+                                    persistence=True,
                                 ),
                             ],
                         ),
@@ -182,6 +184,7 @@ class TornadoPlot:
                                 },
                             ],
                             value=[],
+                            persistence=True,
                         ),
                         html.Details(
                             open=False,
@@ -211,9 +214,11 @@ class TornadoPlot:
                             id=self.ids("tornado-graph"),
                             config={"displayModeBar": False},
                         ),
-                        dcc.Store(id=self.ids("storage")),
-                        dcc.Store(id=self.ids("click-store")),
-                        dcc.Store(id=self.ids("high-low-storage")),
+                        dcc.Store(id=self.ids("storage"), storage_type="local"),
+                        dcc.Store(id=self.ids("click-store"), storage_type="local"),
+                        dcc.Store(
+                            id=self.ids("high-low-storage"), storage_type="local"
+                        ),
                     ],
                 )
             ]

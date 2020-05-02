@@ -59,6 +59,7 @@ class DiskUsage(WebvizPluginABC):
                     options=[
                         {"label": i, "value": i} for i in ["Pie chart", "Bar chart"]
                     ],
+                    persistence=True,
                     value="Pie chart",
                 ),
                 wcc.Graph(id=self.uuid("chart")),

@@ -21,6 +21,7 @@ class Widgets:
             options=[{"label": k, "value": v} for k, v in dictionary.items()],
             value=list(dictionary.values())[0],
             clearable=False,
+            persistence=True,
         )
 
 
@@ -79,14 +80,14 @@ class ParameterCorrelation(WebvizPluginABC):
                 style={"padding": "5px"},
                 children=[
                     html.Label(
-                        "Parameter horizontal axis:",
-                        style={"font-weight": "bold"},
+                        "Parameter horizontal axis:", style={"font-weight": "bold"},
                     ),
                     dcc.Dropdown(
                         id=self.ids("parameter1"),
                         options=[{"label": p, "value": p} for p in self.p_cols],
                         value=self.p_cols[0],
                         clearable=False,
+                        persistence=True,
                     ),
                     Widgets.dropdown_from_dict(self.ids("ensemble-1"), self.ensembles),
                 ],
@@ -102,6 +103,7 @@ class ParameterCorrelation(WebvizPluginABC):
                         options=[{"label": p, "value": p} for p in self.p_cols],
                         value=self.p_cols[0],
                         clearable=False,
+                        persistence=True,
                     ),
                     Widgets.dropdown_from_dict(self.ids("ensemble-2"), self.ensembles),
                 ],
@@ -113,18 +115,15 @@ class ParameterCorrelation(WebvizPluginABC):
                     dcc.Dropdown(
                         id=self.ids("scatter-color"),
                         options=[{"label": p, "value": p} for p in self.p_cols],
+                        persistence=True,
                     ),
                 ],
             ),
             dcc.Checklist(
                 id=self.ids("density"),
                 style={"padding": "5px"},
-                options=[
-                    {
-                        "label": "Show scatterplot density",
-                        "value": "density",
-                    }
-                ],
+                options=[{"label": "Show scatterplot density", "value": "density",}],
+                persistence=True,
             ),
         ]
 
@@ -393,16 +392,8 @@ def render_matrix(ensemble_path, theme, drop_constants=True):
             "paper_bgcolor": "rgba(0,0,0,0)",
             "plot_bgcolor": "rgba(0,0,0,0)",
             "margin": {"t": 50, "b": 50},
-            "xaxis": {
-                "ticks": "",
-                "showticklabels": False,
-                "showgrid": False,
-            },
-            "yaxis": {
-                "ticks": "",
-                "showticklabels": False,
-                "showgrid": False,
-            },
+            "xaxis": {"ticks": "", "showticklabels": False, "showgrid": False,},
+            "yaxis": {"ticks": "", "showticklabels": False, "showgrid": False,},
         },
     )
 

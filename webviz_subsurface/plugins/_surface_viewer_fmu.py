@@ -189,6 +189,7 @@ Valid options for `color` are `viridis` (default), `inferno`, `warm`, `cool` and
                                     value=self.ensembles[0],
                                     id=ensemble_id,
                                     clearable=False,
+                                    persistence=True,
                                 ),
                                 html.Button(
                                     style={
@@ -226,6 +227,7 @@ Valid options for `color` are `viridis` (default), `inferno`, `warm`, `cool` and
                                     value=self.realizations(self.ensembles[0])[0],
                                     id=real_id,
                                     clearable=False,
+                                    persistence=True,
                                 ),
                                 html.Button(
                                     style={
@@ -309,6 +311,7 @@ Valid options for `color` are `viridis` (default), `inferno`, `warm`, `cool` and
                                                 "Quotient",
                                             ]
                                         ],
+                                        persistence=True,
                                     )
                                 ),
                                 wcc.FlexBox(
@@ -321,6 +324,7 @@ Valid options for `color` are `viridis` (default), `inferno`, `warm`, `cool` and
                                                     debounce=True,
                                                     type="number",
                                                     id=self.uuid("truncate-diff-min"),
+                                                    persistence=True,
                                                 ),
                                             ],
                                         ),
@@ -332,6 +336,7 @@ Valid options for `color` are `viridis` (default), `inferno`, `warm`, `cool` and
                                                     debounce=True,
                                                     type="number",
                                                     id=self.uuid("truncate-diff-max"),
+                                                    persistence=True,
                                                 ),
                                             ],
                                         ),
@@ -477,6 +482,7 @@ Valid options for `color` are `viridis` (default), `inferno`, `warm`, `cool` and
                         dcc.Store(
                             id=self.uuid("attribute-settings"),
                             data=json.dumps(self.attribute_settings),
+                            storage_type="local",
                         ),
                     ],
                 ),

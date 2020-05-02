@@ -180,6 +180,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         ],
                         value=self.wellfiles[0],
                         clearable=False,
+                        persistence=True,
                     ),
                 ]
             )
@@ -200,6 +201,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         value=self.surfacenames,
                         clearable=True,
                         multi=True,
+                        persistence=True,
                     ),
                 ]
             ),
@@ -221,6 +223,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                         value=list(self.ensembles.keys())[0],
                         clearable=False,
                         multi=False,
+                        persistence=True,
                     ),
                 ]
             ),
@@ -244,6 +247,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                             ],
                             value=self.segyfiles[0],
                             clearable=False,
+                            persistence=True,
                         ),
                     ]
                 ),
@@ -267,6 +271,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                             ],
                             placeholder="Display log",
                             clearable=True,
+                            persistence=True,
                         ),
                     ]
                 ),
@@ -299,6 +304,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                     debounce=True,
                     type="number",
                     value=self.sampling,
+                    persistence=True,
                 ),
                 html.Label("Extension"),
                 dcc.Input(
@@ -306,8 +312,14 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                     debounce=True,
                     type="number",
                     value=self.nextend,
+                    persistence=True,
                 ),
-                dcc.Checklist(id=self.ids("options"), options=options, value=value),
+                dcc.Checklist(
+                    id=self.ids("options"),
+                    options=options,
+                    value=value,
+                    persistence=True,
+                ),
             ],
         )
 
@@ -323,6 +335,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                     value=self.surfacenames[0],
                     clearable=False,
                     multi=False,
+                    persistence=True,
                 ),
                 dcc.Dropdown(
                     id=self.ids("surface-type"),
@@ -340,6 +353,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                     value="stddev",
                     clearable=False,
                     multi=False,
+                    persistence=True,
                 ),
             ],
         )
@@ -394,7 +408,9 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                             id=self.ids("show_map"),
                             children="Show map",
                         ),
-                        dcc.Store(id=self.ids("fencespec"), data=[]),
+                        dcc.Store(
+                            id=self.ids("fencespec"), data=[], storage_type="local"
+                        ),
                     ],
                 ),
             ],

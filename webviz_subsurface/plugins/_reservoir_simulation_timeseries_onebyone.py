@@ -245,6 +245,7 @@ folder, to avoid risk of not extracting the right data.
                         ],
                         clearable=False,
                         value=list(self.data["ENSEMBLE"].unique())[0],
+                        persistence=True,
                     ),
                 ]
             ),
@@ -269,6 +270,7 @@ folder, to avoid risk of not extracting the right data.
                         ],
                         clearable=False,
                         value=self.initial_vector,
+                        persistence=True,
                     ),
                 ]
             ),
@@ -339,7 +341,10 @@ folder, to avoid risk of not extracting the right data.
                                     children=[
                                         self.ensemble_selector,
                                         self.smry_selector,
-                                        dcc.Store(id=self.ids("date-store")),
+                                        dcc.Store(
+                                            id=self.ids("date-store"),
+                                            storage_type="local",
+                                        ),
                                     ],
                                 ),
                                 wcc.FlexBox(
