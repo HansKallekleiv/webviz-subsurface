@@ -38,6 +38,7 @@ from .._utils.simulation_timeseries import (
 
 # pylint: disable=too-many-instance-attributes
 class ReservoirSimulationTimeSeriesRegional(WebvizPluginABC):
+<<<<<<< HEAD
     """Aggregates and visualizes regional time series data from simulation ensembles. That
 is: cumulatives, rates and inplace volumes. Allows human friendly filter names, e.g. regions,
 zones and etc based on user input.
@@ -108,6 +109,46 @@ is actively used to decide which vectors that can be used for recovery factors.
 individual realizations. You should therefore not have more than one `UNSMRY` file in this
 folder, to avoid risk of not extracting the right data.
 """
+=======
+    """### ReservoirSimulationTimeSeriesRegional
+
+    This plugins aggregates and visualizes regional time series data from simulation ensembles. That
+    is cumulatives, rates and inplace volumes. In addiotion recovery is calculated based on the
+    inplace volumes.
+
+    #### Mandatory input
+    * `ensembles`: Which ensembles in `shared_settings` to include in the plugin.
+
+    #### Optional input
+    * `fipfile`: Path to a yaml-file that defines a match between FIPXXX (e.g. FIPNUM) regions
+     and _'human readable'_ regions, zones and etc. These will be used as filters. _Note that this is a
+     single file used for all ensembles_. If all region numbers for a filter are missing in the data,
+     this filter value will be silently ignored. E.g. if no vectors matches 5 or 6 in
+     [this example file](
+     https://github.com/equinor/webviz-subsurface-testdata/tree/master/reek_history_match/share/
+    regions/fip.yaml), `ZONE` == `LowerReek` would be ignored in the plugin for `FIPNUM`. This is
+     to allow you to use the same file for e.g. a sector and a full field model.
+    * `initial_vector`: First vector to plot (default is `ROIP`)
+    * `column_keys`: List of vector patterns to include or `None`, the latter gives all available
+     vectors, and `None` is also the default.<br/>
+    Vectors that don't match the following patterns will be filtered out for this plugin:
+        * `R[OGW]IP*` (regional in place),
+        * `R[OGW][IP][RT]*` (regional injection and production rates and cumulatives)
+    * `sampling`: Time series data will be sampled (and interpolated) at this frequency. Options:
+        * `daily`
+        * `monthly` (default)
+        * `yearly`
+    * `line_shape_fallback`: Fallback interpolation method between points. Vectors identified as rates
+     always backfilled, vectors identified as cumulative (totals) are always linearly interpolated.
+     The rest use the fallback. Options:
+        * `linear` (default)
+        * `backfilled`<br/>
+        * `hv` (regular Plotly option)
+        * `vh` (regular Plotly option)
+        * `hvh` (regular Plotly option)
+        * `vhv` (regular Plotly option)
+        * `spline` (regular Plotly option)"""
+>>>>>>> wip
 
     TABLE_STATISTICS = [("Group", {})] + table_statistics_base()
     ENSEMBLE_COLUMNS = ["REAL", "ENSEMBLE", "DATE"]

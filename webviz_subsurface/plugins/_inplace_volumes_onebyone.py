@@ -26,6 +26,7 @@ class InplaceVolumesOneByOne(WebvizPluginABC):
     # pylint: disable=too-many-instance-attributes
     """Visualizes inplace volumetrics related to a FMU ensemble with a design matrix.
 
+<<<<<<< HEAD
 Input can be given either as an aggregated `csv` file for volumes and sensitivity information,
 or as ensemble name(s) defined in `shared_settings` and volumetric `csv` files
 stored per realization.
@@ -91,6 +92,53 @@ An example of an aggregated file to use with `csvfile_parameters`
 [can be found here](https://github.com/equinor/webviz-subsurface-testdata/blob/master/\
 aggregated_data/parameters.csv)
 """
+=======
+    Visualizes inplace volumetrics related to a FMU ensemble with design matrix.
+
+    Input can be given either as aggregated csv files for volumes and sensitivity information,
+    or as an ensemble name defined in *shared_settings* and volumetric csv files
+    stored per realizations.
+
+    #### Volumetric input
+    The volumetric csv files must follow FMU standards.
+    [Example csv file](
+    https://github.com/equinor/webviz-subsurface-testdata/blob/master/aggregated_data/volumes.csv)
+
+    The columns: *ZONE*, *REGION*, *FACIES*, *LICENSE* and *SOURCE* will be used as available
+    filters if present. (*SOURCE* is relevant if calculations are done for multiple grids).
+
+    Remaining columns are seen as volumetric responses. Any names are allowed,
+    but the following responses are given more descriptive names automatically:
+
+    - **BULK_OIL**: Bulk Volume (Oil)
+    - **NET_OIL**: Net Volume (Oil)
+    - **PORE_OIL**: Pore Volume (Oil)
+    - **HCPV_OIL**: Hydro Carbon Pore Volume (Oil)
+    - **STOIIP_OIL**: Stock Tank Oil Initially In Place
+    - **BULK_GAS**: Bulk Volume (Gas)
+    - **NET_GAS**: Net Volume (Gas)
+    - **PORV_GAS**: Pore Volume (Gas)
+    - **HCPV_GAS**: Hydro Carbon Pore Volume (Gas)
+    - **GIIP_GAS**: Gas Initially In Place
+    - **RECOVERABLE_OIL**: Recoverable Volume (Oil)
+    - **RECOVERABLE_GAS**: Recoverable Volume (Gas)
+
+    #### Sensitivity input
+
+    The sensitivity information is extracted automatically if an ensemble is given as input,
+    as long as *SENSCASE* and *SENSNAME* is found in 'parameters.txt'.
+
+    [Example csv file](
+    https://github.com/equinor/webviz-subsurface-testdata/blob/master/aggregated_data/realdata.csv)
+
+    * `csvfile_vol`: Aggregated csvfile for volumes with 'REAL', 'ENSEMBLE' and 'SOURCE' columns
+    * `csvfile_parameters`: Aggregated csvfile for sensitivity information
+    * `ensembles`: Which ensembles in `shared_settings` to visualize.
+    * `volfiles`:  Key/value pair of csv files E.g. {geogrid: geogrid--oil.csv}
+    * `volfolder`: Optional local folder for csv files
+    * `response`: Optional initial visualized volume response
+    """
+>>>>>>> wip
 
     FILTERS = ["ZONE", "REGION", "FACIES", "LICENSE"]
 

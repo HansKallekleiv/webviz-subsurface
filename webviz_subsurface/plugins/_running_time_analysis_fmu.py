@@ -15,6 +15,7 @@ from .._datainput.fmu_input import load_ensemble_set, load_parameters
 
 
 class RunningTimeAnalysisFMU(WebvizPluginABC):
+<<<<<<< HEAD
     """Can e.g. be used to investigate which jobs that are important for the running
 time of realizations, and if specific parameter combinations increase running time or chance of
 realization failure. Systematic realization failure could introduce bias to assisted history
@@ -48,6 +49,27 @@ The `status.json` file is the standard status file when running
 on the same format [(example file)](https://github.com/equinor/webviz-subsurface-testdata/\
 blob/master/reek_history_match/realization-0/iter-0/status.json).
 """
+=======
+    """### Running time analysis of jobs in FMU runs.
+
+    This plugin can e.g. be used to investigate which jobs that are important for the running time of
+    realizations, and if specific parameter combinations increase running time or chance of realization
+    failure. The latter could introduce bias to assisted history matching.
+
+    Two main visualizations:
+    For individual jobs:
+    * Running times of jobs relative to jobs in same ensemble or realization as a color coded heatmap.
+    For realizations:
+    * Parallel coordinate plot for parameters used in realizations, colored by successful/failed
+    realization or realization running time.
+
+    * `ensembles`: Which ensembles in `shared_settings` to include in check. Only required input.
+    * `filter_shorter`: Filters jobs with maximum run time in ensemble less than X seconds.
+    Default: 10. Can be checked on/off interactively, this only sets the filtering value.
+    * `status_file`: Name of json file with job status. Default: `status.json`
+    * 'visual_parameters': List of default visualized parameteres in parallel coordinates plot.
+    Default: all parameters."""
+>>>>>>> wip
 
     COLOR_MATRIX_BY_LABELS = [
         "Same job in ensemble",

@@ -19,6 +19,7 @@ from .._datainput.fmu_input import load_parameters, load_csv, load_smry
 class ParameterResponseCorrelation(WebvizPluginABC):
     """Visualizes correlations between numerical input parameters and responses.
 
+<<<<<<< HEAD
 ---
 **Three main options for input data: Aggregated, file per realization and read from UNSMRY.**
 
@@ -114,6 +115,40 @@ using the `fmu-ensemble` library.
 individual realizations. You should therefore not have more than one `UNSMRY` file in this \
 folder, to avoid risk of not extracting the right data.
 """
+=======
+    This plugin shows correlation between numerical input parameters and responses.
+
+    Input can be given either as:
+
+      - Aggregated csv files for parameters and responses,
+      - An ensemble name defined in shared_settings and a local csv file for responses
+    stored per realizations.
+
+    **Note**: Non-numerical (string-based) input parameters and responses are removed.
+
+    **Note**: The response csv file will be aggregated per realization.
+
+    Arguments:
+
+    * `parameter_csv`: Aggregated csvfile for input parameters with 'REAL' and 'ENSEMBLE' columns.
+    * `response_csv`: Aggregated csvfile for response parameters with 'REAL' and 'ENSEMBLE' columns.
+    * `ensembles`: Which ensembles in `shared_settings` to visualize.
+    * `response_file`: Local (per realization) csv file for response parameters.
+    * `response_filters`: Optional dictionary of responses (columns in csv file) that can be used
+    as row filtering before aggregation. (See below for filter types).
+
+    * `response_ignore`: Response (columns in csv) to ignore (cannot use with response_include).
+    * `response_include`: Response (columns in csv) to include (cannot use with response_ignore).
+    * `aggreation`: How to aggregate responses per realization. Either `sum` or `mean`.
+    * `corr_method`: Correlation algorithm. Either `pearson` or `spearman`.
+
+    The types of response_filters are:
+    ```
+    - `single`: Dropdown with single selection.
+    - `multi`: Dropdown with multiple selection.
+    - `range`: Slider with range selection.
+    ```"""
+>>>>>>> wip
 
     # pylint:disable=too-many-arguments
     def __init__(

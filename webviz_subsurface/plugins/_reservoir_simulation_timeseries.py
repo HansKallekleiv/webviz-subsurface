@@ -36,6 +36,7 @@ from .._datainput.from_timeseries_cumulatives import (
 
 
 class ReservoirSimulationTimeSeries(WebvizPluginABC):
+<<<<<<< HEAD
     """Visualizes reservoir simulation time series data for FMU ensembles.
 
 **Features**
@@ -117,6 +118,34 @@ as they require identification of vectors that are cumulatives.
 individual realizations. You should therefore not have more than one `UNSMRY` file in this \
 folder, to avoid risk of not extracting the right data.
 """
+=======
+    """### ReservoirSimulationTimeSeries
+
+    Visualizes reservoir simulation time series for FMU ensembles.
+    Input can be given either as aggregated csv file or an ensemble defined
+    in plugin settings.
+
+    * `csvfile`: Aggregated csvfile for unsmry with 'REAL', 'ENSEMBLE', 'DATE' and vector columns
+    * `ensembles`: Which ensembles in `shared_settings` to visualize.
+    * `column_keys`: List of vectors to extract. If not given, all vectors
+                     from the simulations will be extracted. Wild card asterisk *
+                     can be used.
+    * `sampling`: Time separation between extracted values. Can be e.g. `monthly`
+                  or `yearly`.
+    * `options`: Options to initialize plots with. See below
+    * `line_shape_fallback`: Fallback interpolation method between points. Vectors identified as rates
+                    or phase ratios are always backfilled, vectors identified as cumulative (totals)
+                    are always linearly interpolated. The rest use the fallback.
+                    Supported: `linear` (default), `backfilled` + regular Plotly options: `hv`, `vh`,
+                    `hvh`, `vhv` and `spline`.
+
+    Plot options:
+        * `vector1` : First vector to display
+        * `vector2` : Second vector to display
+        * `vector3` : Third vector to display
+        * `visualization` : 'realizations', 'statistics' or 'statistics_hist',
+        * `date` : Date to show in histograms"""
+>>>>>>> wip
 
     ENSEMBLE_COLUMNS = ["REAL", "ENSEMBLE", "DATE"]
     # pylint:disable=too-many-arguments
@@ -1097,12 +1126,27 @@ def add_statistic_traces(stat_df, vector, colors, line_shape, interval):
     for ensemble, ens_df in stat_df.groupby(("", "ENSEMBLE")):
         traces.extend(
             add_fanchart_traces(
+<<<<<<< HEAD
                 ens_stat_df=ens_df,
                 vector=vector,
                 color=colors.get(ensemble, colors[list(colors.keys())[0]]),
                 legend_group=ensemble,
                 line_shape=line_shape,
                 hovertemplate=render_hovertemplate(vector=vector, interval=interval),
+=======
+                pd.concat(dframes, names=["STATISTIC"], sort=False)[vector],
+                colors.get(ensemble, colors[list(colors.keys())[0]]),
+                ensemble,
+                line_shape,
+            )
+        )
+    if historical_vector(vector=vector, smry_meta=smry_meta) in df.columns:
+        traces.append(
+            add_history_trace(
+                df,
+                historical_vector(vector=vector, smry_meta=smry_meta),
+                line_shape,
+>>>>>>> wip
             )
         )
     return traces

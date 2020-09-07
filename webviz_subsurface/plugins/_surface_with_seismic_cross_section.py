@@ -19,8 +19,15 @@ from .._datainput.surface import make_surface_layer, get_surface_fence
 
 
 class SurfaceWithSeismicCrossSection(WebvizPluginABC):
+<<<<<<< HEAD
     """Visualizes surfaces in a map view and seismic in a cross section view.
 The cross section is defined by a polyline interactively edited in the map view.
+=======
+    """### SurfaceWithSeismicCrossSection
+
+    This plugin visualizes surfaces in a map view and seismic in a cross section view.
+    The cross section is defined by a polyline interactively edited in the map view.
+>>>>>>> wip
 
 ---
 
@@ -41,6 +48,7 @@ Note that apostrophies should be used to avoid that hex colors are read as comme
 * [Segyfiles](https://github.com/equinor/webviz-subsurface-testdata/tree/master/\
 observed_data/seismic).
 
+<<<<<<< HEAD
 * [One file for surfacefiles](https://github.com/equinor/webviz-subsurface-testdata/blob/master/\
 reek_history_match/realization-0/iter-0/share/results/\
 maps/topupperreek--ds_extracted_horizons.gri).
@@ -51,6 +59,14 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
 The surfacefiles are on a `ROFF binary` format and can be investigated outside `webviz` using \
 e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
 """
+=======
+    * `segyfiles`: List of file paths to SEG-Y files
+    * `segynames`: Corresponding list of displayed seismic names
+    * `surfacefiles`: List of file paths to Irap Binary surfaces
+    * `surfacenames`: Corresponding list of displayed surface names
+    * `zunit`: z-unit for display
+    * `colors`: List of colors to use"""
+>>>>>>> wip
 
     def __init__(
         self,

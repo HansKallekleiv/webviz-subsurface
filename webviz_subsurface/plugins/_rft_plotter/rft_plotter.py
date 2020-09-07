@@ -25,17 +25,17 @@ class RftPlotter(WebvizPluginABC):
     """This plugin visualizes simulated RFT results from
 FMU ensembles combined with ERT observation data.
 
-Several visualizations are available:
+    Several visualizations are available:
 
-* Map view of RFT observations.
+    * Map view of RFT observations.
 
-* Depth vs pressure plot showing simulated RFT data along wells together with observation points.
+    * Depth vs pressure plot showing simulated RFT data along wells together with observation points.
 
-* Barchart showing sum of mean misfit for ERT observations per realization. One plot per ensemble.
+    * Barchart showing sum of mean misfit for ERT observations per realization. One plot per ensemble.
 
-* Crossplot of simulated RFT vs observed value per ERT observation. One plot per ensemble.
+    * Crossplot of simulated RFT vs observed value per ERT observation. One plot per ensemble.
 
-* Boxplot showing misfit per ERT observation for each ensemble.
+    * Boxplot showing misfit per ERT observation for each ensemble.
 
 ---
 **Using data per realization**

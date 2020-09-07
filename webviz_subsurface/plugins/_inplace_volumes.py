@@ -18,6 +18,7 @@ from .._abbreviations.number_formatting import table_statistics_base
 
 
 class InplaceVolumes(WebvizPluginABC):
+<<<<<<< HEAD
     """Visualizes inplace volumetric results from
 FMU ensembles.
 
@@ -78,6 +79,47 @@ but the following responses are given more descriptive names automatically:
 * `RECOVERABLE_GAS`: Recoverable Volume (Gas)
 
 """
+=======
+    """### InplaceVolumes
+
+    This plugin visualizes inplace volumetrics results from
+    FMU ensembles.
+
+    Input can be given either as aggregated csv files for volumes or or as an ensemble name
+    defined in *plugin_settings* and volumetric csv files stored per realizations.
+
+    #### Volumetric input
+
+    The volumetric csv files must follow FMU standards.
+    [Example csv file](
+    https://github.com/equinor/webviz-subsurface-testdata/blob/master/aggregated_data/volumes.csv)
+
+    The columns: *ZONE*, *REGION*, *FACIES*, *LICENSE* and *SOURCE* will be used as available
+    filters if present. (*SOURCE* is relevant if calculations are done for multiple grids).
+
+    Remaining columns are seen as volumetric responses. Any names are allowed,
+    but the following responses are given more descriptive names automatically:
+
+    - **BULK_OIL**: Bulk Volume (Oil)
+    - **NET_OIL**: Net Volume (Oil)
+    - **PORE_OIL**: Pore Volume (Oil)
+    - **HCPV_OIL**: Hydro Carbon Pore Volume (Oil)
+    - **STOIIP_OIL**: Stock Tank Oil Initially In Place
+    - **BULK_GAS**: Bulk Volume (Gas)
+    - **NET_GAS**: Net Volume (Gas)
+    - **PORV_GAS**: Pore Volume (Gas)
+    - **HCPV_GAS**: Hydro Carbon Pore Volume (Gas)
+    - **GIIP_GAS**: Gas Initially In Place
+    - **RECOVERABLE_OIL**: Recoverable Volume (Oil)
+    - **RECOVERABLE_GAS**: Recoverable Volume (Gas)
+
+    * `csvfile`: Aggregated csvfile with 'REAL', 'ENSEMBLE' and 'SOURCE' columns
+    * `ensembles`: Which ensembles in `shared_settings` to visualize.
+    * `volfiles`:  Key/value pair of csv files E.g. (geogrid: geogrid--oil.csv)
+    * `volfolder`: Optional local folder for csv files
+    * `response`: Optional initial visualized volume response
+    """
+>>>>>>> wip
 
     TABLE_STATISTICS = [("Group", {})] + table_statistics_base()
 
