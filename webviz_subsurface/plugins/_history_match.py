@@ -14,7 +14,6 @@ from .._datainput.history_match import extract_mismatch
 class HistoryMatch(WebvizPluginABC):
     """Visualizes the quality of the history match.
 
-<<<<<<< HEAD
 ---
 
 * **`ensembles`:** List of the ensembles in `shared_settings` to visualize.
@@ -30,13 +29,6 @@ be made manually. [An example of the format can be found here]\
 (https://github.com/equinor/webviz-subsurface-testdata/blob/master/reek_history_match/share/\
 observations/observations.yml).
 """
-=======
-    Visualizes the quality of the history match.
-
-    * `ensembles`: List of the ensembles in `shared_settings` to visualize.
-    * `observation_File`: Path to the observation `.yaml` file.
-    * `title`: Optional title for the plugin."""
->>>>>>> wip
 
     def __init__(self, app, ensembles: list, observation_file: Path):
 

@@ -38,7 +38,6 @@ class ReservoirSimulationTimeSeriesOneByOne(WebvizPluginABC):
     """Visualizes reservoir simulation time series data for sensitivity studies based \
 on a design matrix.
 
-<<<<<<< HEAD
 A tornado plot can be calculated interactively for each date/vector by selecting a date.
 After selecting a date individual sensitivities can be selected to highlight the realizations
 run with that sensitivity.
@@ -103,44 +102,6 @@ speed up the build of the app, as processing of `UNSMRY` files can be slow for l
 individual realizations. You should therefore not have more than one `UNSMRY` file in this \
 folder, to avoid risk of not extracting the right data.
 """
-=======
-    Visualizes reservoir simulation time series for sensitivity studies.
-
-    A tornadoplot can be calculated interactively for each date/vector by choosing a data.
-    After selecting a date individual sensitivities can be selected to highlight the realizations
-    run with that sensitivity.
-
-    Input can be given either as aggregated csv files for summary vectors and sensitivity
-    information, or as an ensemble name defined in 'shared_settings'.
-
-    #### Time series input
-    The time series input can either extracted automatically from the ensemble or
-    provided as a standalone csv.
-    [Example file](
-    https://github.com/equinor/webviz-subsurface-testdata/blob/master/aggregated_data/smry.csv)
-
-
-    #### Sensitivity input
-
-    The sensitivity information is extracted automatically if an ensemble is given as input,
-    as long as *SENSCASE* and *SENSNAME* is found in *parameters.txt*.[Example csv file](
-    https://github.com/equinor/webviz-subsurface-testdata/blob/master/aggregated_data/realdata.csv)
-
-    * `csvfile_smry`: Aggregated csvfile for volumes with 'REAL', 'ENSEMBLE', 'DATE' and vector columns
-    * `csvfile_parameters`: Aggregated csvfile for sensitivity information
-    * `ensembles`: Which ensembles in `shared_settings` to visualize.
-    * `column_keys`: List of vectors to extract. If not given, all vectors
-                     from the simulations will be extracted. Wild card asterisk *
-                     can be used.
-    * `initial_vector`: Initial vector to display
-    * `sampling`: Time separation between extracted values. Can be e.g. `monthly`
-                  or `yearly`.
-    * `line_shape_fallback`: Fallback interpolation method between points. Vectors identified as rates
-                    or phase ratios are always backfilled, vectors identified as cumulative (totals)
-                    are always linearly interpolated. The rest use the fallback.
-                    Supported: `linear` (default), `backfilled` + regular Plotly options: `hv`, `vh`,
-                    `hvh`, `vhv` and `spline`."""
->>>>>>> wip
 
     ENSEMBLE_COLUMNS = [
         "REAL",

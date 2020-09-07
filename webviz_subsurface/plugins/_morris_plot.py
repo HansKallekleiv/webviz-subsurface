@@ -12,7 +12,6 @@ from webviz_config import WebvizPluginABC
 
 
 class MorrisPlot(WebvizPluginABC):
-<<<<<<< HEAD
     """Renders a visualization of the Morris sampling method.
 The Morris method can be used to screen parameters for how they
 influence model response, both individually and through interaction
@@ -27,17 +26,6 @@ effect with other parameters.
 [Example of input file](https://github.com/equinor/webviz-subsurface-testdata/blob/master/\
 aggregated_data/morris.csv).
 """
-=======
-    """### Morris
-
-    Renders a visualization of the Morris sampling method.
-    The Morris method can be used to screen parameters for how they
-    influence model response, both individually and through interaction
-    effect with other parameters.
-
-    * `csv_file`: Input data
-    * `title`: Optional title for the plugin."""
->>>>>>> wip
 
     def __init__(self, app, csv_file: Path):
 

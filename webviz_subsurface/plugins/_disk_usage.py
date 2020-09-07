@@ -16,21 +16,11 @@ class DiskUsage(WebvizPluginABC):
     """Visualize disk usage in a FMU project. It adds a dashboard showing disk usage per user,
         where the user can choose to plot as a pie chart or as a bar chart.
 
-<<<<<<< HEAD
     ---
 
     * **`scratch_dir`:** Path to the scratch directory to show disk usage for.
     * **`date`:** Date as string of form YYYY-MM-DD to request an explisit date. Default is to
     to use the most recent file avaialable, limited to the last week.
-=======
-    Adds functionality for standard visualization of disk usage in FMU projects.
-    It adds a dashboard element where the user can choose between
-    showing disk usage, per user, either as a pie chart or as a bar chart.
-
-    * `scratch_dir`: Path to the directory you want to show disk usage for, e.g.
-      `/scratch/fmu`.
-    * `title`: Optional title for the plugin."""
->>>>>>> wip
 
     ---
 

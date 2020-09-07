@@ -17,7 +17,6 @@ from .._datainput.seismic import load_cube_data, get_iline, get_xline, get_zslic
 
 
 class SegyViewer(WebvizPluginABC):
-<<<<<<< HEAD
     """Inspired by [SegyViewer for Python](https://github.com/equinor/segyviewer) this plugin
 visualizes seismic 3D cubes with 3 plots (inline, crossline and zslice).
 The plots are linked and updates are done by clicking in the plots.
@@ -39,17 +38,6 @@ The segyfiles are on a `SEG-Y` format and can be investigated outside `webviz` u
 e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
 
 """
-=======
-    """### SegyViewer
-
-    Inspired by [SegyViewer for Python](https://github.com/equinor/segyviewer) this plugin
-    visualizes seismic 3D cubes with 3 plots (inline, crossline and zslice).
-    The plots are linked and updates are done by clicking in the plots.
-
-    * `segyfiles`: List of file paths to segyfiles
-    * `zunit`: z-unit for display
-    * `colors`: List of colors to use"""
->>>>>>> wip
 
     def __init__(
         self, app, segyfiles: List[Path], zunit="depth (m)", colors: list = None

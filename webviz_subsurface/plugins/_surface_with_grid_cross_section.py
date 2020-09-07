@@ -19,7 +19,6 @@ from .._datainput.surface import make_surface_layer, get_surface_fence
 
 
 class SurfaceWithGridCrossSection(WebvizPluginABC):
-<<<<<<< HEAD
     """Visualizes surfaces in a map view and grid parameters in a cross section view. \
 The cross section is defined by a polyline interactively edited in the map view.
 
@@ -54,23 +53,6 @@ maps/topupperreek--ds_extracted_horizons.gri).
 The files above are on a `ROFF binary` format and can be investigated outside `webviz` using \
 e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
 """
-=======
-    """### SurfaceWithGridCrossSection
-
-    This plugin visualizes surfaces in a map view and grid parameters in a cross section view.
-    The cross section is defined by a polyline interactively edited in the map view.
-
-    NOTE: This is an experimental plugin exploring how we can visualize 3D grid data in Webviz.
-    The performance is currently slow for large grids.
-
-    * `gridfile`: Path to grid geometry (ROFF format)
-    * `gridparameterfiles`: List of file paths to grid parameters (ROFF format)
-    * `gridparameternames`: Corresponding list of displayed parameter names
-    * `surfacefiles`: List of file paths to Irap Binary surfaces
-    * `surfacenames`: Corresponding list of displayed surface names
-    * `zunit`: z-unit for display
-    * `colors`: List of colors to use"""
->>>>>>> wip
 
     # pylint: disable=too-many-arguments
     def __init__(

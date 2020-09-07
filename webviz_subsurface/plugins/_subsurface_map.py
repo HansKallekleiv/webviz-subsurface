@@ -13,7 +13,6 @@ from .._datainput.fmu_input import scratch_ensemble
 
 
 class SubsurfaceMap(WebvizPluginABC):
-<<<<<<< HEAD
     """Visualizes reservoir grids in a map view, additionally it can
 visualize the flow pattern in the simulation output using streamlines.
 Input can be either a premade json object or data can be extracted from
@@ -52,22 +51,6 @@ consisting of just a single realization.
 `eclipse/model`. You should therefore not have more than one of each of these files to make sure \
 that you are reading the correct data.
 """
-=======
-    """### Subsurface map
-
-    This plugin visualizes reservoir grids in a map view, additionally it can
-    visualize the flow pattern in the simulation output using streamlines.
-    Input can be either a premade json object or data can be extracted from
-    a FMU ensemble.
-
-    * `jsonfile`: jsonfile with data.
-    * `ensemble`: Which ensemble in `shared_settings` to visualize.
-    * `map_value`: Which property to show in the map (e.g. `PERMX`).
-    * `flow_value`: Which property to use for the streamlines animation
-      (e.g. `FLOWAT`).
-    * `time_step`: Which report or time step to use in the simulation output.
-    * `title`: Optional title for the plugin."""
->>>>>>> wip
 
     def __init__(
         self,

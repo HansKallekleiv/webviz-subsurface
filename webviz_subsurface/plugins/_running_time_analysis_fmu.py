@@ -15,7 +15,6 @@ from .._datainput.fmu_input import load_ensemble_set, load_parameters
 
 
 class RunningTimeAnalysisFMU(WebvizPluginABC):
-<<<<<<< HEAD
     """Can e.g. be used to investigate which jobs that are important for the running
 time of realizations, and if specific parameter combinations increase running time or chance of
 realization failure. Systematic realization failure could introduce bias to assisted history
@@ -49,27 +48,6 @@ The `status.json` file is the standard status file when running
 on the same format [(example file)](https://github.com/equinor/webviz-subsurface-testdata/\
 blob/master/reek_history_match/realization-0/iter-0/status.json).
 """
-=======
-    """### Running time analysis of jobs in FMU runs.
-
-    This plugin can e.g. be used to investigate which jobs that are important for the running time of
-    realizations, and if specific parameter combinations increase running time or chance of realization
-    failure. The latter could introduce bias to assisted history matching.
-
-    Two main visualizations:
-    For individual jobs:
-    * Running times of jobs relative to jobs in same ensemble or realization as a color coded heatmap.
-    For realizations:
-    * Parallel coordinate plot for parameters used in realizations, colored by successful/failed
-    realization or realization running time.
-
-    * `ensembles`: Which ensembles in `shared_settings` to include in check. Only required input.
-    * `filter_shorter`: Filters jobs with maximum run time in ensemble less than X seconds.
-    Default: 10. Can be checked on/off interactively, this only sets the filtering value.
-    * `status_file`: Name of json file with job status. Default: `status.json`
-    * 'visual_parameters': List of default visualized parameteres in parallel coordinates plot.
-    Default: all parameters."""
->>>>>>> wip
 
     COLOR_MATRIX_BY_LABELS = [
         "Same job in ensemble",
@@ -146,10 +124,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
     @property
     def plot_fig(self):
         return html.Div(
-            style={
-                "overflowX": "hidden",
-                "width": "100%",
-            },
+            style={"overflowX": "hidden", "width": "100%",},
             children=[
                 html.Div(
                     id=self.uuid("plot_fig"),
@@ -166,18 +141,14 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
     @property
     def control_div(self):
         return html.Div(
-            style={
-                "padding-right": 15,
-            },
+            style={"padding-right": 15,},
             children=[
                 html.Label(
                     children=[
                         html.Span("Mode:", style={"font-weight": "bold"}),
                         dcc.RadioItems(
                             id=self.uuid("mode"),
-                            style={
-                                "padding-bottom": 10,
-                            },
+                            style={"padding-bottom": 10,},
                             options=[
                                 {
                                     "label": "Running time matrix",
@@ -197,9 +168,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
                     children=[
                         html.Span("Set ensemble:", style={"font-weight": "bold"}),
                         html.Div(
-                            style={
-                                "padding-bottom": 10,
-                            },
+                            style={"padding-bottom": 10,},
                             children=[
                                 dcc.Dropdown(
                                     id=self.uuid("ensemble"),
@@ -224,9 +193,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
                             style={"font-weight": "bold"},
                         ),
                         html.Div(
-                            style={
-                                "padding-bottom": 10,
-                            },
+                            style={"padding-bottom": 10,},
                             children=[
                                 dcc.Dropdown(
                                     id=self.uuid("relative_runtime"),
@@ -253,9 +220,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
                             style={"font-weight": "bold"},
                         ),
                         html.Div(
-                            style={
-                                "padding-bottom": 10,
-                            },
+                            style={"padding-bottom": 10,},
                             children=[
                                 dcc.Dropdown(
                                     id=self.uuid("relative_real"),
@@ -278,8 +243,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
                     style={"display": "none"},
                     children=[
                         html.Span(
-                            "Selected parameters:",
-                            style={"font-weight": "bold"},
+                            "Selected parameters:", style={"font-weight": "bold"},
                         ),
                         wcc.Select(
                             id=self.uuid("parameters"),
@@ -320,9 +284,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
     @property
     def layout(self):
         return wcc.FlexBox(
-            style={
-                "padding-top": 10,
-            },
+            style={"padding-top": 10,},
             children=[
                 html.Div(style={"flex": "1"}, children=self.control_div),
                 html.Div(style={"flex": "3"}, children=self.plot_fig),
@@ -432,12 +394,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
             ),
             (
                 load_parameters,
-                [
-                    {
-                        "ensemble_paths": self.ens_paths,
-                        "filter_file": None,
-                    },
-                ],
+                [{"ensemble_paths": self.ens_paths, "filter_file": None,},],
             ),
         ]
 
@@ -464,16 +421,8 @@ def render_matrix(status_df, rel, theme):
         "hoverinfo": "text",
         "colorscale": theme["layout"]["colorscale"]["sequential"],
         "colorbar": {
-            "tickvals": [
-                0,
-                0.5,
-                1,
-            ],
-            "ticktext": [
-                "0 %",
-                "50 %",
-                "100 %",
-            ],
+            "tickvals": [0, 0.5, 1,],
+            "ticktext": ["0 %", "50 %", "100 %",],
             "xanchor": "left",
         },
     }
@@ -483,11 +432,7 @@ def render_matrix(status_df, rel, theme):
         {
             "paper_bgcolor": "rgba(0,0,0,0)",
             "plot_bgcolor": "rgba(0,0,0,0)",
-            "margin": {
-                "t": 50,
-                "b": 50,
-                "l": 50,
-            },
+            "margin": {"t": 50, "b": 50, "l": 50,},
             "xaxis": {
                 "ticks": "",
                 "title": "Realizations",
@@ -550,13 +495,7 @@ def render_parcoord(plot_df, params, theme, colormap, color_col, colormap_labels
         )
     else:
         data["line"].update(  # pylint: disable=expression-not-assigned
-            {
-                "colorbar": {
-                    "title": "Running time",
-                    "xanchor": "right",
-                    "x": -0.02,
-                },
-            },
+            {"colorbar": {"title": "Running time", "xanchor": "right", "x": -0.02,},},
         )
 
     layout = {}
