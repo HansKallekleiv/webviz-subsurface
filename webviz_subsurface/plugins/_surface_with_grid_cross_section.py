@@ -242,6 +242,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                         "drawPolyline": True,
                                         "position": "topright",
                                     },
+                                    layers=[],
                                     mouseCoords={"position": "bottomright"},
                                     colorBar={"position": "bottomleft"},
                                 ),
