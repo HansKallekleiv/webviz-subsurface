@@ -6,9 +6,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 from dash_table.Format import Format
 
-import time
-
-
 # pylint: disable=too-many-public-methods
 class ParametersModel:
     """Class to process and visualize ensemble property statistics data"""
@@ -29,7 +26,35 @@ class ParametersModel:
         self._statframe = self._aggregate_ensemble_data(self._dataframe)
         self._statframe_normalized = self._normalize_and_aggregate()
 
+    @property
+    def dataframe_melted(self) -> pd.DataFrame:
+        return self.dataframe.melt(
+            id_vars=["ENSEMBLE", "REAL"], var_name="PARAMETER", value_name="VALUE"
+        )
+
+    @property
+    def dataframe(self) -> pd.DataFrame:
+        return self._dataframe
+
+    @property
+    def statframe(self) -> pd.DataFrame:
+        return self._statframe
+
+    @property
+    def parameters(self) -> pd.DataFrame:
+        return self._parameters
+
+    @parameters.setter
+    def parameters(self, sortorder):
+        self._parameters = sortorder
+
+    @property
+    def ensembles(self) -> List[str]:
+        return list(self.dataframe["ENSEMBLE"].unique())
+
     def _prepare_data(self, drop_constants):
+
+        self._dataframe = self._dataframe.reset_index(drop=True)
 
         if drop_constants:
             constant_params = [
@@ -64,35 +89,10 @@ class ParametersModel:
                 if (":" in col and col not in self.REQUIRED_COLUMNS)
             }
         )
+
         self._parameters = [
             x for x in self._dataframe.columns if x not in self.REQUIRED_COLUMNS
         ]
-
-    @property
-    def dataframe_melted(self) -> pd.DataFrame:
-        return self.dataframe.melt(
-            id_vars=["ENSEMBLE", "REAL"], var_name="PARAMETER", value_name="VALUE"
-        )
-
-    @property
-    def dataframe(self) -> pd.DataFrame:
-        return self._dataframe
-
-    @property
-    def statframe(self) -> pd.DataFrame:
-        return self._statframe
-
-    @property
-    def parameters(self) -> pd.DataFrame:
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, sortorder):
-        self._parameters = sortorder
-
-    @property
-    def ensembles(self) -> List[str]:
-        return list(self.dataframe["ENSEMBLE"].unique())
 
     def _aggregate_ensemble_data(self, dframe) -> pd.DataFrame:
         return (
@@ -120,9 +120,9 @@ class ParametersModel:
             MinMaxScaler().fit_transform(df[self.parameters]),
             columns=[x for x in df.columns if x in self.parameters],
         )
-        extra_cols = [x for x in df.columns if x not in self.parameters]
-        df_norm[extra_cols] = df[extra_cols]
-        return self._aggregate_ensemble_data(df_norm)
+        df_norm[self.REQUIRED_COLUMNS] = df[self.REQUIRED_COLUMNS]
+        df = self._aggregate_ensemble_data(df_norm)
+        return df.pivot_table(columns=["ENSEMBLE"], index="PARAMETER").reset_index()
 
     def sort_parameters(
         self,
@@ -130,31 +130,18 @@ class ParametersModel:
         delta_ensemble: str,
         sortby: str,
     ):
-        start = time.time()
-        print("sort")
-        df = self._delta_statistics(ensemble, delta_ensemble)
+        # compute diff between ensembles
+        df = self._statframe_normalized.copy()
+        df["Avg", "diff"] = abs(df["Avg"][ensemble] - df["Avg"][delta_ensemble])
+        df["Stddev", "diff"] = df["Stddev"][ensemble] - df["Stddev"][delta_ensemble]
+
+        # set parameter column and update parameter list
         df = df.sort_values(
             by="PARAMETER" if sortby == "Name" else [(sortby, "diff")],
             ascending=(sortby == "Name"),
         )
-        end = time.time()
-        print(end - start)
         self._parameters = list(df["PARAMETER"])
         return list(df["PARAMETER"])
-
-    def _delta_statistics(
-        self,
-        ensemble: str,
-        delta_ensemble: str,
-    ) -> pd.DataFrame:
-
-        df = self._statframe_normalized.copy()
-        df = df.pivot_table(columns=["ENSEMBLE"], index="PARAMETER").reset_index()
-
-        df["Avg", "diff"] = abs(df["Avg"][ensemble] - df["Avg"][delta_ensemble])
-        df["Stddev", "diff"] = df["Stddev"][ensemble] - df["Stddev"][delta_ensemble]
-
-        return df
 
     @staticmethod
     def make_table(df: pd.DataFrame) -> Tuple[List[Any], List[Any]]:
@@ -165,6 +152,10 @@ class ParametersModel:
         ]
         return columns, df.to_dict("records")
 
+    def _sort_parameters_col(self, df, parameters):
+        sortorder = [x for x in self._parameters if x in parameters]
+        return df.set_index("PARAMETER").loc[sortorder].reset_index()
+
     def make_statistics_table(
         self,
         ensembles: list,
@@ -174,6 +165,7 @@ class ParametersModel:
         df = df[df["ENSEMBLE"].isin(ensembles)]
         df = df[df["PARAMETER"].isin(parameters)]
         df = df.pivot_table(columns=["ENSEMBLE"], index="PARAMETER").reset_index()
+        df = self._sort_parameters_col(df, parameters)
         return self.make_table(df)
 
     def make_grouped_plot(
@@ -186,8 +178,7 @@ class ParametersModel:
         df = self.dataframe_melted.copy()
         df = df[df["ENSEMBLE"].isin(ensembles)]
         df = df[df["PARAMETER"].isin(parameters)]
-        sortorder = [x for x in self._parameters if x in parameters]
-        df = df.set_index("PARAMETER").loc[sortorder].reset_index()
+        df = self._sort_parameters_col(df, parameters)
 
         if len(parameters) > 72:
             facet_col_wrap = 12
@@ -236,3 +227,10 @@ class ParametersModel:
         fig = fig.to_dict()
         fig["layout"] = self.theme.create_themed_layout(fig["layout"])
         return fig
+
+    def get_real_order(self, ensemble: str, parameter: str) -> pd.DataFrame:
+        df = self.dataframe_melted.copy()
+
+        df = df[df["ENSEMBLE"] == ensemble]
+        df = df[df["PARAMETER"] == parameter]
+        return df.sort_values(by="VALUE")[["VALUE", "REAL"]]

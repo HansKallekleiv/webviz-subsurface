@@ -10,53 +10,7 @@ from ..utils.colors import find_intermediate_color
 from ..figures.correlation_figure import CorrelationFigure
 
 
-
 def property_response_controller(parent, app):
-
-    @app.callback(
-        Output(parent.uuid("property-response-correlated-slider"), "min"),
-        Output(parent.uuid("property-response-correlated-slider"), "max"),
-        Output(parent.uuid("property-response-correlated-slider"), "step"),
-        Output(parent.uuid("property-response-correlated-slider"), "value"),
-        Output(parent.uuid("property-response-correlated-slider"), "marks"),
-        Output(parent.uuid("property-response-correlated-slider"), "disabled"),
-        Input(parent.uuid("property-response-correlated-filter"), "value"),
-        Input({"id": parent.uuid("ensemble-selector"), "tab": "response"}, "value"),
-    )
-    # pylint: disable=protected-access
-    def _update_correlation_figure(
-        label: str, ensemble: str
-    ) -> Tuple[
-        Union[float, dash.dash._NoUpdate],
-        Union[float, dash.dash._NoUpdate],
-        Union[float, dash.dash._NoUpdate],
-        list,
-        Union[dict, dash.dash._NoUpdate],
-        bool,
-    ]:
-        if label is not None:
-            values = parent.pmodel.filter_on_label(label=label, ensemble=ensemble)
-            return (
-                values.min(),
-                values.max(),
-                (values.max() - values.min()) / 100,
-                [values.min(), values.max()],
-                {
-                    str(values.min()): {"label": f"{values.min():.2f}"},
-                    str(values.max()): {"label": f"{values.max():.2f}"},
-                },
-                False,
-            )
-
-        return (
-            dash.no_update,
-            dash.no_update,
-            dash.no_update,
-            [None, None],
-            dash.no_update,
-            True,
-        )
-
     @app.callback(
         Output(parent.uuid("property-response-vector-graph"), "figure"),
         Output(parent.uuid("property-response-correlation-graph"), "figure"),
@@ -66,15 +20,12 @@ def property_response_controller(parent, app):
         Input(parent.uuid("property-response-correlation-graph"), "clickData"),
         Input(
             {
-                "id": parent.uuid("filter-selector"),
+                "id": parent.uuid("filter-parameter"),
                 "tab": "response",
-                "selector": ALL,
             },
             "value",
         ),
-        Input(parent.uuid("property-response-correlated-slider"), "value"),
         State(parent.uuid("property-response-vector-graph"), "figure"),
-        State(parent.uuid("property-response-correlated-filter"), "value"),
     )
     # pylint: disable=too-many-locals
     def _update_graphs(
@@ -82,10 +33,8 @@ def property_response_controller(parent, app):
         vector: str,
         timeseries_clickdata: Union[None, dict],
         correlation_clickdata: Union[None, dict],
-        selectors: list,
-        corr_filter: str,
+        parameters: list,
         figure: dict,
-        label: str,
     ) -> Tuple[dict, dict]:
         if (
             dash.callback_context.triggered is None
@@ -95,25 +44,17 @@ def property_response_controller(parent, app):
             raise PreventUpdate
         ctx = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
 
-        # Filter realizations if correlation filter is active
-        real_filter = (
-            parent.pmodel.filter_reals_on_label_range(ensemble, label, corr_filter)
-            if corr_filter[0] is not None and corr_filter[1] is not None
-            else None
-        )
-
         # Make timeseries graph
         if any(
             substr in ctx
             for substr in [
                 parent.uuid("property-response-vector-select"),
                 parent.uuid("ensemble-selector"),
-                parent.uuid("property-response-correlated-slider"),
             ]
         ):
 
             figure = update_timeseries_graph(
-                parent.vmodel, ensemble, vector, real_filter
+                parent.vmodel, ensemble, vector, real_filter=None
             )
 
         # Get clicked data or last available date initially
@@ -139,13 +80,9 @@ def property_response_controller(parent, app):
         vector_df["REAL"] = vector_df["REAL"].astype(int)
 
         # Get dataframe with properties per label and REAL
-        prop_df = parent.pmodel.get_ensemble_properties(ensemble, selectors)
+        prop_df = parent.pmodel.dataframe.copy()
+        prop_df = prop_df[prop_df["ENSEMBLE"] == ensemble]
         prop_df["REAL"] = prop_df["REAL"].astype(int)
-        prop_df = (
-            prop_df[prop_df["REAL"].isin(real_filter)]
-            if real_filter is not None
-            else prop_df
-        )
 
         # Correlate properties against vector
         corrseries = correlate(vector_df, prop_df, response=vector)
@@ -164,16 +101,20 @@ def property_response_controller(parent, app):
 
         # Order realizations sorted on value of property
         real_order = (
-            parent.pmodel.get_real_order(ensemble, series=selected_corr)
+            parent.pmodel.get_real_order(ensemble, parameter=selected_corr)
             if selected_corr is not None
             else None
         )
 
         # Color timeseries lines from value of property
         if real_order is not None:
-            mean = real_order["Avg"].mean()
-            low_reals = real_order[real_order["Avg"] <= mean]["REAL"].astype(str).values
-            high_reals = real_order[real_order["Avg"] > mean]["REAL"].astype(str).values
+            mean = real_order["VALUE"].mean()
+            low_reals = (
+                real_order[real_order["VALUE"] <= mean]["REAL"].astype(str).values
+            )
+            high_reals = (
+                real_order[real_order["VALUE"] > mean]["REAL"].astype(str).values
+            )
             for trace_no, trace in enumerate(figure.get("data", [])):
                 if trace["name"] == ensemble:
                     figure["data"][trace_no]["marker"]["color"] = set_real_color(

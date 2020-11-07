@@ -111,21 +111,22 @@ folder, to avoid risk of not extracting the right data.
                 theme=self.theme,
                 drop_constants=drop_constants,
             )
-        #     self.vmodel = SimulationTimeSeriesModel(
-        #         dataframe=self.emodel.load_smry(
-        #             time_index=self.time_index,
-        #         ),
-        #         theme=self.theme,
-        #     )
+            self.vmodel = SimulationTimeSeriesModel(
+                dataframe=self.emodel.load_smry(
+                    time_index=self.time_index,
+                ),
+                theme=self.theme,
+            )
+
         else:
             self.pmodel = ParametersModel(
                 dataframe=read_parquet(csvfile_parameters),
                 theme=self.theme,
                 drop_constants=drop_constants,
             )
-            # self.vmodel = SimulationTimeSeriesModel(
-            #     dataframe=read_csv(csvfile_smry), theme=self.theme.plotly_theme
-            # )
+            self.vmodel = SimulationTimeSeriesModel(
+                dataframe=read_parquet(csvfile_smry), theme=self.theme.plotly_theme
+            )
 
         self.set_callbacks(app)
 

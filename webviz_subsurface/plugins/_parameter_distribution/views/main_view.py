@@ -2,7 +2,6 @@ import dash_html_components as html
 import dash_core_components as dcc
 
 from .property_qc_view import property_qc_view
-from .property_delta_view import property_delta_view
 from .property_response_view import property_response_view
 
 
@@ -13,19 +12,12 @@ def main_view(parent) -> dcc.Tabs:
             children=property_qc_view(parent=parent),
         )
     ]
-    if len(parent.pmodel.ensembles) > 1:
-        tabs.append(
-            make_tab(
-                label="AHM impact on parameters",
-                children=property_delta_view(parent=parent),
-            )
+    tabs.append(
+        make_tab(
+            label="Parameters impact on simulation profiles",
+            children=property_response_view(parent=parent),
         )
-    #    tabs.append(
-    #        make_tab(
-    #            label="Parameters impact on simulation profiles",
-    #            children=property_response_view(parent=parent),
-    #        )
-    #    )
+    )
 
     return html.Div(
         id=parent.uuid("layout"),

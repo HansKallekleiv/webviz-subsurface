@@ -3,9 +3,7 @@ import dash_core_components as dcc
 import webviz_core_components as wcc
 import webviz_subsurface_components as wsc
 
-from .selector_view import (
-    ensemble_selector,
-)
+from .selector_view import ensemble_selector, filter_parameter
 
 
 def timeseries_view(parent) -> html.Div:
@@ -46,33 +44,6 @@ def correlation_view(parent) -> html.Div:
     )
 
 
-def filter_correlated_parameter(parent) -> html.Div:
-    return html.Div(
-        [
-            html.H5("Filter on property"),
-            html.Div(
-                style={"marginBottom": "10px", "marginTop": "10px", "fontSize": "1rem"},
-                children=dcc.Dropdown(
-                    id=parent.uuid("property-response-correlated-filter"),
-                    options=[
-                        {"label": label, "value": label}
-                        for label in parent.pmodel.get_labels()
-                    ],
-                    placeholder="Select a label to filter on...",
-                    persistence=True,
-                    persistence_type="session",
-                ),
-            ),
-            dcc.RangeSlider(
-                id=parent.uuid("property-response-correlated-slider"),
-                disabled=True,
-                persistence=True,
-                persistence_type="session",
-            ),
-        ]
-    )
-
-
 def selector_view(parent) -> html.Div:
     return html.Div(
         style={"height": "80vh", "overflowY": "auto"},
@@ -81,6 +52,12 @@ def selector_view(parent) -> html.Div:
             html.Div(
                 children=[
                     ensemble_selector(parent=parent, tab="response"),
+                    filter_parameter(
+                        parent=parent,
+                        tab="response",
+                        value=[parent.pmodel.parameters[0]],
+                        open_details=True,
+                    ),
                 ]
             ),
             html.Div(),

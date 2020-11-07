@@ -57,17 +57,25 @@ def filter_parameter(
     return html.Div(
         children=[
             html.H5("PARAMETERS"),
-            wcc.Select(
-                id={
-                    "id": parent.uuid("filter-parameter"),
-                    "tab": tab,
-                },
-                options=[{"label": i, "value": i} for i in parent.pmodel.parameters],
-                value=value,
-                multi=multi,
-                size=min(30, len(parent.pmodel.parameters)),
-                persistence=True,
-                persistence_type="session",
+            html.Details(
+                open=open_details,
+                children=[
+                    html.Summary("PARAMETERS"),
+                    wcc.Select(
+                        id={
+                            "id": parent.uuid("filter-parameter"),
+                            "tab": tab,
+                        },
+                        options=[
+                            {"label": i, "value": i} for i in parent.pmodel.parameters
+                        ],
+                        value=value,
+                        multi=multi,
+                        size=min(30, len(parent.pmodel.parameters)),
+                        persistence=True,
+                        persistence_type="session",
+                    ),
+                ],
             ),
         ]
     )
