@@ -9,7 +9,7 @@ from .selector_view import ensemble_selector, delta_ensemble_selector, filter_pa
 def selector_view(parent) -> html.Div:
     return html.Div(
         className="framed",
-        style={"height": "80vh", "overflowY": "auto"},
+        style={"height": "80vh", "overflowY": "auto", "font-size": "15px"},
         children=[
             ensemble_selector(parent=parent, tab="qc"),
             delta_ensemble_selector(parent=parent, tab="qc"),
@@ -17,7 +17,6 @@ def selector_view(parent) -> html.Div:
                 parent=parent,
                 tab="qc",
                 value=[parent.pmodel.parameters[0]],
-                open_details=True,
             ),
         ],
     )

@@ -180,57 +180,55 @@ class ParametersModel:
         df = df[df["PARAMETER"].isin(parameters)]
         df = self._sort_parameters_col(df, parameters)
 
-        if len(parameters) > 72:
-            facet_col_wrap = 12
-        elif 42 < len(parameters) <= 72:
-            facet_col_wrap = 9
-        elif 18 < len(parameters) <= 42:
-            facet_col_wrap = 6
-        else:
-            facet_col_wrap = 3
-
         if plot_type == "histogram":
             fig = (
                 px.violin(
                     df,
                     x="VALUE",
                     facet_col="PARAMETER",
-                    facet_col_wrap=facet_col_wrap,
+                    facet_col_wrap=min(
+                        min(
+                            [x for x in range(100) if (x * (x + 1)) >= len(parameters)]
+                        ),
+                        20,
+                    ),
                     color="ENSEMBLE",
                     color_discrete_sequence=self.colorway,
                 )
                 .update_xaxes(
-                    matches=None, fixedrange=True, title=None, showticklabels=True
+                    matches=None,
+                    fixedrange=True,
+                    title=None,
+                    showticklabels=(len(parameters) < 20),
                 )
-                .update_yaxes(matches=None, fixedrange=True)
                 .for_each_trace(
                     lambda t: t.update(
+                        hoveron="violins",
+                        hoverinfo="name",
                         meanline_visible=True,
+                        #    meanline={"color": "black"},
                         orientation="h",
                         side="positive",
                         width=3,
+                        points=False,
                     )
                 )
-                .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-                # .add_vline(
-                #    x=0,
-                #    row="all",
-                #    col="all",
-                #    line_width=3,
-                #    line_dash="dash",
-                #    line_color="green",
-                # )
-                # .for_each_shape(
-                #    lambda a: a.update(yref=a.yref.replace(" domain", ""), y1=1.5)
-                # )
+                .for_each_annotation(
+                    lambda a: a.update(
+                        hovertext=a.text.split("=")[-1],
+                        text=(a.text.split("=")[-1]) if len(parameters) < 40 else "",
+                    )
+                )
             )
+
         fig = fig.to_dict()
         fig["layout"] = self.theme.create_themed_layout(fig["layout"])
+
         return fig
 
     def get_real_order(self, ensemble: str, parameter: str) -> pd.DataFrame:
-        df = self.dataframe_melted.copy()
-
-        df = df[df["ENSEMBLE"] == ensemble]
-        df = df[df["PARAMETER"] == parameter]
-        return df.sort_values(by="VALUE")[["VALUE", "REAL"]]
+        df = self.dataframe_melted
+        df = df[["VALUE", "REAL"]].loc[
+            (df["ENSEMBLE"] == ensemble) & (df["PARAMETER"] == parameter)
+        ]
+        return df.sort_values(by="VALUE")

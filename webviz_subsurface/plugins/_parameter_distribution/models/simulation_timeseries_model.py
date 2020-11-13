@@ -26,18 +26,61 @@ class SimulationTimeSeriesModel:
     ) -> None:
         self._dataframe = dataframe
         self._prepare_and_validate_data()
+
         self.theme = theme
 
         self._metadata = metadata
         self.line_shape_fallback = set_simulation_line_shape_fallback(
             line_shape_fallback
         )
+        self._split_vectors_by_type()
 
     def _prepare_and_validate_data(self) -> None:
         for column in ["ENSEMBLE", "REAL", "DATE"]:
             if column not in self.dataframe.columns:
                 raise KeyError(f"{column} column is missing from UNSMRY data")
         self.dataframe["DATE"] = self.dataframe["DATE"].astype(str)
+
+        self._drop_last_date_if_empty()
+
+    def _drop_last_date_if_empty(self):
+        last_date = self.dataframe["DATE"].max()
+        if self.dataframe[self.dataframe["DATE"] == last_date]["FOPR"].mean() == 0:
+            self._dataframe = self.dataframe[~(self.dataframe["DATE"] == last_date)]
+
+    def _split_vectors_by_type(self):
+        self._vectors = [
+            c
+            for c in self.dataframe.columns
+            if c not in ["REAL", "ENSEMBLE", "DATE"]
+            and not historical_vector(c, self.metadata, False) in self.dataframe.columns
+        ]
+
+        self._vectors_main = list(set([v.split(":")[0] for v in self._vectors]))
+
+        self._field_vectors = [v for v in self.vectors if v.startswith("F")]
+
+        self._well_vectors = [v for v in self.vectors if v.startswith("W")]
+        self._well_vectors_group = list(
+            set([v.split(":")[0] for v in self._well_vectors])
+        )
+
+        self._region_vectors = [v for v in self.vectors if v.startswith("R")]
+        self._region_vectors_group = list(
+            set([v.split(":")[0] for v in self._region_vectors])
+        )
+
+        self._other_vectors = [
+            v
+            for v in self.vectors
+            if v not in self.field_vectors + self.well_vectors + self.region_vectors
+        ]
+
+        self._wells = sorted(list(set([v.split(":")[-1] for v in self._well_vectors])))
+        self._regions = sorted(
+            list(set([v.split(":")[-1] for v in self._region_vectors])),
+            key=int,
+        )
 
     @property
     def colors(self) -> dict:
@@ -78,12 +121,66 @@ class SimulationTimeSeriesModel:
 
     @property
     def vectors(self):
-        return [
-            c
-            for c in self.dataframe.columns
-            if c not in ["REAL", "ENSEMBLE", "DATE"]
-            and not historical_vector(c, self.metadata, False) in self.dataframe.columns
-        ]
+        return self._vectors
+
+    @property
+    def vectors_main(self):
+        return self._vectors_main
+
+    @property
+    def vector_groups(self):
+        return {
+            "Field": {"vectors_main": self._field_vectors},
+            "Well": {
+                "vectors_main": self._well_vectors_group,
+                "subselect": self._wells,
+            },
+            "Region": {
+                "vectors_main": self._region_vectors_group,
+                "subselect": self._regions,
+            },
+            "Others": {"vectors_main": self._other_vectors},
+        }
+
+    @property
+    def vector_selectors(self):
+        return {
+            "Wells": self.wells,
+            "Regions": self.regions,
+        }
+
+    @property
+    def vector_types(self):
+        return {
+            "Field": self.field_vectors,
+            "Well": self.well_vectors,
+            "Region": self.region_vectors,
+            "Others": self.other_vectors,
+        }
+
+    @property
+    def field_vectors(self):
+        return self._field_vectors
+
+    @property
+    def well_vectors(self):
+        return self._well_vectors
+
+    @property
+    def wells(self):
+        return self._wells
+
+    @property
+    def region_vectors(self):
+        return self._region_vectors
+
+    @property
+    def regions(self):
+        return self._regions
+
+    @property
+    def other_vectors(self):
+        return self._other_vectors
 
     @property
     def ens_colors(self) -> dict:
@@ -107,15 +204,14 @@ class SimulationTimeSeriesModel:
             smry_meta=self.metadata,
         )
 
-    def get_ensemble_vector_for_date(
-        self, ensemble: str, vector: str, date: str
+    def get_ensemble_vectors_for_date(
+        self, ensemble: str, date: str, vectors: list = None
     ) -> pd.DataFrame:
-        df = self.dataframe[self.dataframe["ENSEMBLE"] == ensemble]
-        df = df.loc[df["DATE"] == date]
-        return df[[vector, "REAL"]]
-
-    def get_last_date(self, ensemble: str) -> str:
-        return self.dataframe[self.dataframe["ENSEMBLE"] == ensemble]["DATE"].max()
+        vectors = vectors if vectors is not None else self.vectors
+        df = self.dataframe[vectors + ["REAL"]].loc[
+            (self.dataframe["ENSEMBLE"] == ensemble) & (self.dataframe["DATE"] == date)
+        ]
+        return df
 
     @CACHE.memoize(timeout=CACHE.TIMEOUT)
     def add_statistic_traces(self, ensembles: list, vector: str) -> list:
@@ -186,7 +282,7 @@ class SimulationTimeSeriesModel:
                 "line": {"shape": self.get_line_shape(vector)},
                 "x": list(real_df["DATE"]),
                 "y": list(real_df[vector]),
-                "hovertext": f"Realization: {real_no}, Ensemble: {ensemble}",
+                "hovertext": f"Realization: {real}, Ensemble: {ensemble}",
                 "name": ensemble,
                 "legendgroup": ensemble,
                 "marker": {
@@ -194,10 +290,10 @@ class SimulationTimeSeriesModel:
                         ensemble, self.ens_colors[list(self.ens_colors.keys())[0]]
                     )
                 },
-                "showlegend": real_no == 0,
+                "showlegend": real_idx == 0,
             }
             for ens_no, (ensemble, ens_df) in enumerate(dataframe.groupby("ENSEMBLE"))
-            for real_no, (real, real_df) in enumerate(ens_df.groupby("REAL"))
+            for real_idx, (real, real_df) in enumerate(ens_df.groupby("REAL"))
         ]
 
         if (
@@ -227,14 +323,15 @@ class SimulationTimeSeriesModel:
                 "line": {"shape": self.get_line_shape(vector)},
                 "x": list(real_df["DATE"]),
                 "y": list(real_df[vector]),
-                "hoverinfo": "skip",
+                "text": f"Real: {real}",
+                "hoverinfo": "text",
                 "name": ensemble,
-                "customdata": real_no,
+                "customdata": real,
                 "legendgroup": ensemble,
                 "marker": {"color": "red"},
-                "showlegend": real_no == 0,
+                "showlegend": real_idx == 0,
             }
-            for real_no, (real, real_df) in enumerate(dataframe.groupby("REAL"))
+            for real_idx, (real, real_df) in enumerate(dataframe.groupby("REAL"))
         ]
 
         if (
@@ -247,6 +344,10 @@ class SimulationTimeSeriesModel:
                 )
             )
         return traces
+
+    def daterange_for_plot(self, vector: str):
+        date = self.dataframe["DATE"][self.dataframe[vector] != 0]
+        return [date.min(), date.max()]
 
 
 def add_fanchart_traces(

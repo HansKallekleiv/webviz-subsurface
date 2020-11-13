@@ -30,17 +30,22 @@ class CorrelationFigure:
     @property
     def layout(self):
         return {
+            "title": self.title,
+            "margin": {
+                "r": 20,
+                "t": 60,
+                "b": 20,
+            },
             "barmode": "relative",
-            "xaxis": {"range": [-1, 1]},
+            "xaxis": {
+                "range": [
+                    self.series.values.min() - 0.1,
+                    self.series.values.max() + 0.1,
+                ]
+            },
             "yaxis": {"automargin": True},
-            "automargin": True,
         }
 
     @property
     def first_y_value(self):
         return self.data[0]["y"][-1]
-
-    def set_bar_colors(self, selected_bar):
-        self._data[0]["marker"]["color"] = [
-            "grey" if _bar != selected_bar else "red" for _bar in self.data[0]["y"]
-        ]

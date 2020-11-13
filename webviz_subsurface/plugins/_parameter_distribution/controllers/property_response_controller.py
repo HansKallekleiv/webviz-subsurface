@@ -1,137 +1,321 @@
 from typing import Tuple, Union
-
+from itertools import chain
 import numpy as np
 import pandas as pd
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import dash
-
+import plotly.express as px
 from ..utils.colors import find_intermediate_color
 from ..figures.correlation_figure import CorrelationFigure
+from ..utils.colors import hex_to_rgb
+
+import time
 
 
 def property_response_controller(parent, app):
     @app.callback(
         Output(parent.uuid("property-response-vector-graph"), "figure"),
+        Output(parent.uuid("property-response-vector-scatter"), "figure"),
         Output(parent.uuid("property-response-correlation-graph"), "figure"),
+        Output(parent.uuid("response-parameter-correlation-graph"), "figure"),
         Input({"id": parent.uuid("ensemble-selector"), "tab": "response"}, "value"),
-        Input(parent.uuid("property-response-vector-select"), "value"),
-        Input(parent.uuid("property-response-vector-graph"), "clickData"),
-        Input(parent.uuid("property-response-correlation-graph"), "clickData"),
         Input(
-            {
-                "id": parent.uuid("filter-parameter"),
-                "tab": "response",
-            },
+            {"id": parent.uuid("vector-select"), "tab": "response"},
+            "children",
+        ),
+        Input(parent.uuid("property-response-vector-graph"), "clickData"),
+        Input(
+            {"id": parent.uuid("parameter-select"), "tab": "response"},
+            "value",
+        ),
+        Input(
+            {"id": parent.uuid("vector-type"), "tab": "response"},
             "value",
         ),
         State(parent.uuid("property-response-vector-graph"), "figure"),
+        State(parent.uuid("response-parameter-correlation-graph"), "figure"),
+        State(parent.uuid("property-response-correlation-graph"), "figure"),
     )
     # pylint: disable=too-many-locals
     def _update_graphs(
         ensemble: str,
         vector: str,
         timeseries_clickdata: Union[None, dict],
-        correlation_clickdata: Union[None, dict],
-        parameters: list,
-        figure: dict,
+        parameter: Union[None, dict],
+        vector_types: Union[None, list],
+        timeseries_fig: dict,
+        corr_p_fig: dict,
+        corr_v_fig: dict,
     ) -> Tuple[dict, dict]:
+
         if (
             dash.callback_context.triggered is None
             or dash.callback_context.triggered[0]["prop_id"] == "."
             or vector is None
         ):
             raise PreventUpdate
+
         ctx = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+        if isinstance(ctx, dict):
+            ctx = ctx["id"]
+
+        daterange = parent.vmodel.daterange_for_plot(vector=vector)
 
         # Make timeseries graph
         if any(
             substr in ctx
             for substr in [
-                parent.uuid("property-response-vector-select"),
+                parent.uuid("vector-select"),
                 parent.uuid("ensemble-selector"),
             ]
         ):
 
-            figure = update_timeseries_graph(
-                parent.vmodel, ensemble, vector, real_filter=None
+            timeseries_fig = update_timeseries_graph(
+                parent.vmodel,
+                ensemble,
+                vector,
+                daterange,
+                real_filter=None,
             )
 
         # Get clicked data or last available date initially
         date = (
-            timeseries_clickdata.get("points", [{}])[0].get(
-                "x", parent.vmodel.get_last_date(ensemble)
-            )
+            timeseries_clickdata.get("points", [{}])[0].get("x", daterange[1])
             if timeseries_clickdata
-            else parent.vmodel.get_last_date(ensemble)
+            else daterange[1]
         )
 
-        # Draw clicked date as a black line
-        ymin = min([min(trace["y"]) for trace in figure["data"]])
-        ymax = max([max(trace["y"]) for trace in figure["data"]])
-        figure["layout"]["shapes"] = [
-            {"type": "line", "x0": date, "x1": date, "y0": ymin, "y1": ymax}
-        ]
+        vectors_filtered = filter_vectors(parent, vector_types)
+        if vector not in vectors_filtered:
+            vectors_filtered.append(vector)
 
         # Get dataframe with vector and REAL
-        vector_df = parent.vmodel.get_ensemble_vector_for_date(
-            ensemble=ensemble, vector=vector, date=date
+        vector_df = parent.vmodel.get_ensemble_vectors_for_date(
+            ensemble=ensemble,
+            vectors=vectors_filtered,
+            date=date,
         )
         vector_df["REAL"] = vector_df["REAL"].astype(int)
 
-        # Get dataframe with properties per label and REAL
-        prop_df = parent.pmodel.dataframe.copy()
-        prop_df = prop_df[prop_df["ENSEMBLE"] == ensemble]
-        prop_df["REAL"] = prop_df["REAL"].astype(int)
+        # Get dataframe with parameters
+        param_df = parent.pmodel.dataframe.copy()
+        param_df = param_df[param_df["ENSEMBLE"] == ensemble]
+        param_df["REAL"] = param_df["REAL"].astype(int)
 
-        # Correlate properties against vector
-        corrseries = correlate(vector_df, prop_df, response=vector)
-        # Make correlation figure
-        correlation_figure = CorrelationFigure(corrseries, n_rows=20, title="")
+        # Make correlation figure for vector
+        if parent.uuid("vector-type") not in ctx:
+            corr_v_fig = make_correlation_figure(
+                df_respons=vector_df, df_corr_params=param_df, response=vector
+            ).figure
 
-        # Get clicked correlation bar or largest bar initially
-        selected_corr = (
-            correlation_clickdata.get("points", [{}])[0].get("y")
-            if correlation_clickdata
-            else correlation_figure.first_y_value
+        # Get clicked parameter correlation bar or largest bar initially
+        parameter = (
+            parameter if parameter is not None else corr_v_fig["data"][0]["y"][-1]
+        )
+        corr_v_fig = color_corr_bars(corr_v_fig, parameter)
+
+        # Make correlation figure for parameter
+        if any(
+            substr not in ctx
+            for substr in [
+                parent.uuid("parameter-select"),
+                parent.uuid("vector-type"),
+            ]
+        ):
+            corr_p_fig = make_correlation_figure(
+                df_respons=param_df, df_corr_params=vector_df, response=parameter
+            ).figure
+        corr_p_fig = color_corr_bars(corr_p_fig, vector)
+
+        # Create scatter plot of vector vs parameter
+        scatter_fig = update_scatter_graph(param_df, vector_df, vector, parameter)
+
+        # Order realizations sorted on value of parameter and color traces
+        real_order = parent.pmodel.get_real_order(ensemble, parameter=parameter)
+        timeseries_fig = color_timeseries_graph(
+            timeseries_fig, ensemble, parameter, vector, real_order
         )
 
-        # Update bar colors
-        correlation_figure.set_bar_colors(selected_corr)
+        # Draw date selected as line
+        timeseries_fig = add_date_line(timeseries_fig, date)
 
-        # Order realizations sorted on value of property
-        real_order = (
-            parent.pmodel.get_real_order(ensemble, parameter=selected_corr)
-            if selected_corr is not None
-            else None
+        return timeseries_fig, scatter_fig, corr_v_fig, corr_p_fig
+
+    @app.callback(
+        Output(
+            {"id": parent.uuid("vector-select"), "tab": "response"},
+            "children",
+        ),
+        Input({"id": parent.uuid("vector-main-select"), "tab": "response"}, "value"),
+        Input({"id": parent.uuid("vector-sub-select"), "tab": "response"}, "value"),
+    )
+    def _combine_substrings_to_vector(main_vector, sub_value=None):
+        if sub_value is None:
+            return main_vector
+        return f"{main_vector}:{sub_value}"
+
+    @app.callback(
+        Output({"id": parent.uuid("vector-main-select"), "tab": "response"}, "options"),
+        Output({"id": parent.uuid("vector-main-select"), "tab": "response"}, "value"),
+        Output({"id": parent.uuid("vector-sub-select"), "tab": "response"}, "options"),
+        Output({"id": parent.uuid("vector-sub-select"), "tab": "response"}, "value"),
+        Output({"id": parent.uuid("vector-sub-select"), "tab": "response"}, "disabled"),
+        Input({"id": parent.uuid("vector-type-select"), "tab": "response"}, "value"),
+        Input(parent.uuid("response-parameter-correlation-graph"), "clickData"),
+    )
+    def _update_vectorlist(vector_type, corr_param_clickdata):
+        ctx = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+        click_data = parent.uuid("response-parameter-correlation-graph") in ctx
+
+        if click_data:
+            vector_selected = corr_param_clickdata.get("points", [{}])[0].get("y")
+            vector_type = find_vector_type(parent, vector_selected)
+            main_vector_value = vector_selected.split(":")[0]
+            sub_selection_value = (
+                vector_selected.split(":")[-1]
+                if "subselect" in parent.vmodel.vector_groups[vector_type]
+                else None
+            )
+        else:
+            main_vector_value = parent.vmodel.vector_groups[vector_type][
+                "vectors_main"
+            ][0]
+            sub_selection_value = (
+                parent.vmodel.vector_groups[vector_type]["subselect"][0]
+                if "subselect" in parent.vmodel.vector_groups[vector_type]
+                else None
+            )
+
+        main_vector_list = [
+            {"label": i, "value": i}
+            for i in parent.vmodel.vector_groups[vector_type]["vectors_main"]
+        ]
+        sub_selection_list = (
+            [
+                {"label": i, "value": i}
+                for i in parent.vmodel.vector_groups[vector_type]["subselect"]
+            ]
+            if "subselect" in parent.vmodel.vector_groups[vector_type]
+            else []
         )
 
-        # Color timeseries lines from value of property
-        if real_order is not None:
-            mean = real_order["VALUE"].mean()
-            low_reals = (
-                real_order[real_order["VALUE"] <= mean]["REAL"].astype(str).values
-            )
-            high_reals = (
-                real_order[real_order["VALUE"] > mean]["REAL"].astype(str).values
-            )
-            for trace_no, trace in enumerate(figure.get("data", [])):
-                if trace["name"] == ensemble:
-                    figure["data"][trace_no]["marker"]["color"] = set_real_color(
-                        str(trace["customdata"]), low_reals, high_reals
-                    )
-            figure["layout"]["title"] = f"Colored by {selected_corr}"
+        return (
+            main_vector_list,
+            main_vector_value,
+            sub_selection_list,
+            sub_selection_value,
+            "subselect" not in parent.vmodel.vector_groups[vector_type],
+        )
 
-        return figure, correlation_figure.figure
+    @app.callback(
+        Output(
+            {"id": parent.uuid("parameter-select"), "tab": "response"},
+            "value",
+        ),
+        Input(parent.uuid("property-response-correlation-graph"), "clickData"),
+    )
+    def _update_parameter_selected(
+        corr_vector_clickdata: Union[None, dict],
+    ) -> str:
+        if corr_vector_clickdata is None:
+            raise PreventUpdate
+        return corr_vector_clickdata.get("points", [{}])[0].get("y")
+
+
+def find_vector_type(parent, vector):
+    for vgroup, values in parent.vmodel.vector_groups.items():
+        if vector.split(":")[0] in values["vectors_main"]:
+            return vgroup
+    return None
+
+
+def filter_vectors(parent, vector_types=None):
+
+    vectors = list(
+        chain.from_iterable([parent.vmodel.vector_types[x] for x in vector_types])
+    )
+
+    return vectors
+
+
+def update_timeseries_graph(
+    timeseries_model, ensemble, vector, daterange, real_filter=None
+):
+    return {
+        "data": timeseries_model.add_realization_traces(
+            ensemble=ensemble, vector=vector, real_filter=real_filter
+        ),
+        "layout": dict(
+            margin={"r": 20, "l": 20, "t": 60, "b": 20},
+            yaxis={"automargin": True},
+            xaxis={"range": daterange},
+            hovermode="closest",
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            showlegend=False,
+        ),
+    }
+
+
+def add_date_line(figure, selected_date):
+    # Draw clicked date as a black line and add annotation
+    ymin = min([min(trace["y"]) for trace in figure["data"]])
+    ymax = max([max(trace["y"]) for trace in figure["data"]])
+    figure["layout"]["shapes"] = [
+        {
+            "type": "line",
+            "x0": selected_date,
+            "x1": selected_date,
+            "y0": ymin,
+            "y1": ymax,
+            "line": {
+                "color": "#243746",
+                "dash": "dot",
+                "width": 4,
+            },
+        }
+    ]
+    figure["layout"]["annotations"] = [
+        {
+            "x": selected_date,
+            "y": ymax,
+            "text": f"{selected_date}",
+            "xanchor": "right",
+            "showarrow": False,
+            "bgcolor": "#E6FAEC",
+            "opacity": 0.8,
+        }
+    ]
+    return figure
+
+
+def color_timeseries_graph(figure, ensemble, selected_param, vector, real_order=None):
+    """Color timeseries lines by parameter value"""
+    if real_order is not None:
+        mean = real_order["VALUE"].mean()
+        low_reals = real_order[real_order["VALUE"] <= mean]["REAL"].astype(str).values
+        high_reals = real_order[real_order["VALUE"] > mean]["REAL"].astype(str).values
+        for trace_no, trace in enumerate(figure.get("data", [])):
+            if trace["name"] == ensemble:
+                figure["data"][trace_no]["marker"]["color"] = set_real_color(
+                    str(trace["customdata"]), low_reals, high_reals
+                )
+        figure["layout"]["title"] = {
+            "text": f"{vector} colored by {selected_param}",
+        }
+    return figure
 
 
 def set_real_color(real_no: str, low_reals: list, high_reals: list):
+    red = "rgba(255,18,67, 1)"
+    green = "rgba(62,208,62, 1)"
 
     if real_no in low_reals:
         index = int(list(low_reals).index(real_no))
         intermed = index / len(low_reals)
         return find_intermediate_color(
-            "rgba(255,0,0, 100, .1)",
+            red,
             "rgba(220,220,220, 0.1)",
             intermed,
             colortype="rgba",
@@ -140,31 +324,90 @@ def set_real_color(real_no: str, low_reals: list, high_reals: list):
         index = int(list(high_reals).index(real_no))
         intermed = index / len(high_reals)
         return find_intermediate_color(
-            "rgba(220,220,220, 0.1)", "rgba(50,205,50, 1)", intermed, colortype="rgba"
+            "rgba(220,220,220, 0.1)", green, intermed, colortype="rgba"
         )
 
     return "rgba(220,220,220, 0.2)"
 
 
-def update_timeseries_graph(timeseries_model, ensemble, vector, real_filter=None):
+def update_scatter_graph(param_df, vector_df, vector, selected_param):
+    colors = [
+        "#FF1243",
+        "#243746",
+        "#007079",
+    ]
+    df = pd.merge(param_df, vector_df[[vector, "REAL"]], on=["REAL"])
+    return (
+        px.scatter(
+            df,
+            x=selected_param,
+            y=vector,
+            trendline="ols",
+            trendline_color_override="#243746",
+        )
+        .update_layout(
+            margin={
+                "r": 20,
+                "l": 20,
+                "t": 60,
+                "b": 20,
+            },
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            title={"text": f"{vector} vs {selected_param}", "x": 0.5},
+        )
+        .update_traces(
+            marker={
+                "size": 15,
+                "color": hex_to_rgb(colors[2], 0.7),
+            }
+        )
+        .update_xaxes(title=None)
+        .update_yaxes(title=None)
+    )
 
-    return {
-        "data": timeseries_model.add_realization_traces(
-            ensemble=ensemble, vector=vector, real_filter=real_filter
-        ),
-        "layout": dict(
-            margin={"r": 40, "l": 40, "t": 40, "b": 40},
-        ),
-    }
+
+def make_correlation_figure(df_respons, df_corr_params, response):
+    df = pd.merge(df_respons[[response, "REAL"]], df_corr_params, on=["REAL"])
+    # Correlate properties against vector
+    corrseries = correlate(df, response=response)
+    # Make correlation figure
+    return CorrelationFigure(
+        corrseries, n_rows=15, title=f"Correlations with {response}"
+    )
 
 
-def correlate(vectordf, propdf, response):
+def correlate(df, response):
     """Returns the correlation matrix for a dataframe"""
-    df = pd.merge(propdf, vectordf, on=["REAL"])
-    df = df[df.columns[df.nunique() > 1]]
+    df = df[df.columns[df.nunique() > 1]].copy()
     if response not in df.columns:
         df[response] = np.nan
     series = df[response]
     df = df.drop(columns=[response, "REAL"])
     corrdf = df.corrwith(series)
     return corrdf.reindex(corrdf.abs().sort_values().index)
+
+
+def color_corr_bars(figure, selected_bar):
+    colors = [
+        "#FF1243",
+        "#243746",
+        "#007079",
+    ]
+
+    figure["data"][0]["marker"] = {
+        "color": [
+            hex_to_rgb(colors[2], 0.4)
+            if _bar != selected_bar
+            else hex_to_rgb(colors[0], 0.8)
+            for _bar in figure["data"][0]["y"]
+        ],
+        "line": {
+            "color": [
+                colors[2] if _bar != selected_bar else colors[0]
+                for _bar in figure["data"][0]["y"]
+            ],
+            "width": 1.2,
+        },
+    }
+    return figure
