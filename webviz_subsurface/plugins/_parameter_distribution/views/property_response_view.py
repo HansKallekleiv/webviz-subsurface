@@ -6,6 +6,7 @@ from .selector_view import (
     filter_vector_selector,
     vector_selector,
     parameter_selector,
+    date_selector,
 )
 
 
@@ -58,17 +59,19 @@ def correlation_view(parent) -> html.Div:
 
 def selector_view(parent) -> html.Div:
     return html.Div(
-        style={"height": "80vh", "overflowY": "auto"},
+        style={"height": "80vh", "overflowY": "auto", "font-size": "15px"},
         className="framed",
         children=[
             html.Div(
                 children=[
+                    html.H5("Selections"),
                     ensemble_selector(parent=parent, tab="response"),
                     vector_selector(parent=parent, tab="response"),
+                    date_selector(parent=parent, tab="response"),
                     parameter_selector(parent=parent, tab="response"),
-                ]
-            ),
-            filter_vector_selector(parent=parent, tab="response"),
+                    filter_vector_selector(parent=parent, tab="response"),
+                ],
+            )
         ],
     )
 

@@ -56,24 +56,22 @@ class SimulationTimeSeriesModel:
             and not historical_vector(c, self.metadata, False) in self.dataframe.columns
         ]
 
-        self._vectors_main = list(set([v.split(":")[0] for v in self._vectors]))
-
         self._field_vectors = [v for v in self.vectors if v.startswith("F")]
 
         self._well_vectors = [v for v in self.vectors if v.startswith("W")]
-        self._well_vectors_group = list(
-            set([v.split(":")[0] for v in self._well_vectors])
+        self._well_vectors_group = sorted(
+            list(set([v.split(":")[0] for v in self._well_vectors]))
         )
 
         self._region_vectors = [v for v in self.vectors if v.startswith("R")]
-        self._region_vectors_group = list(
-            set([v.split(":")[0] for v in self._region_vectors])
+        self._region_vectors_group = sorted(
+            list(set([v.split(":")[0] for v in self._region_vectors]))
         )
 
         self._other_vectors = [
             v
             for v in self.vectors
-            if v not in self.field_vectors + self.well_vectors + self.region_vectors
+            if v not in self._field_vectors + self._well_vectors + self._region_vectors
         ]
 
         self._wells = sorted(list(set([v.split(":")[-1] for v in self._well_vectors])))
@@ -124,22 +122,26 @@ class SimulationTimeSeriesModel:
         return self._vectors
 
     @property
-    def vectors_main(self):
-        return self._vectors_main
-
-    @property
     def vector_groups(self):
         return {
-            "Field": {"vectors_main": self._field_vectors},
+            "Field": {
+                "vectors_main": self._field_vectors,
+                "vectors": self._field_vectors,
+            },
             "Well": {
+                "vectors": self._well_vectors,
                 "vectors_main": self._well_vectors_group,
                 "subselect": self._wells,
             },
             "Region": {
+                "vectors": self._region_vectors,
                 "vectors_main": self._region_vectors_group,
                 "subselect": self._regions,
             },
-            "Others": {"vectors_main": self._other_vectors},
+            "Others": {
+                "vectors_main": self._other_vectors,
+                "vectors": self._other_vectors,
+            },
         }
 
     @property
@@ -150,37 +152,12 @@ class SimulationTimeSeriesModel:
         }
 
     @property
-    def vector_types(self):
-        return {
-            "Field": self.field_vectors,
-            "Well": self.well_vectors,
-            "Region": self.region_vectors,
-            "Others": self.other_vectors,
-        }
-
-    @property
-    def field_vectors(self):
-        return self._field_vectors
-
-    @property
-    def well_vectors(self):
-        return self._well_vectors
-
-    @property
     def wells(self):
         return self._wells
 
     @property
-    def region_vectors(self):
-        return self._region_vectors
-
-    @property
     def regions(self):
         return self._regions
-
-    @property
-    def other_vectors(self):
-        return self._other_vectors
 
     @property
     def ens_colors(self) -> dict:
@@ -208,10 +185,9 @@ class SimulationTimeSeriesModel:
         self, ensemble: str, date: str, vectors: list = None
     ) -> pd.DataFrame:
         vectors = vectors if vectors is not None else self.vectors
-        df = self.dataframe[vectors + ["REAL"]].loc[
+        return self.dataframe[vectors + ["REAL"]].loc[
             (self.dataframe["ENSEMBLE"] == ensemble) & (self.dataframe["DATE"] == date)
         ]
-        return df
 
     @CACHE.memoize(timeout=CACHE.TIMEOUT)
     def add_statistic_traces(self, ensembles: list, vector: str) -> list:

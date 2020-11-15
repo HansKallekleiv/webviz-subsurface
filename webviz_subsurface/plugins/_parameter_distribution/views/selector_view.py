@@ -11,7 +11,7 @@ def ensemble_selector(
     return html.Div(
         style={"width": "75%"},
         children=[
-            html.H5("Ensemble"),
+            html.Span("Ensemble:", style={"font-weight": "bold"}),
             dcc.Dropdown(
                 id={"id": parent.uuid("ensemble-selector"), "tab": tab},
                 options=[
@@ -29,14 +29,13 @@ def ensemble_selector(
 
 def vector_selector(parent, tab: str) -> html.Div:
     return html.Div(
-        style={"width": "90%", "font-size": "15px"},
+        style={"width": "90%", "margin-top": "15px"},
         children=[
-            html.H5("Vector"),
             html.Span("Vector type:", style={"font-weight": "bold"}),
             dcc.RadioItems(
                 id={"id": parent.uuid("vector-type-select"), "tab": tab},
                 options=[
-                    {"label": i, "value": i} for i in parent.vmodel.vector_types.keys()
+                    {"label": i, "value": i} for i in parent.vmodel.vector_groups.keys()
                 ],
                 value="Field",
                 style={"background-color": "white"},
@@ -68,7 +67,7 @@ def vector_selector(parent, tab: str) -> html.Div:
                     dcc.Dropdown(
                         id={"id": parent.uuid("vector-sub-select"), "tab": tab},
                         disabled=True,
-                        placeholder="Subselection...",
+                        placeholder="No subselections...",
                         clearable=False,
                         persistence=True,
                         persistence_type="session",
@@ -85,9 +84,9 @@ def vector_selector(parent, tab: str) -> html.Div:
 
 def parameter_selector(parent, tab: str) -> html.Div:
     return html.Div(
-        style={"width": "90%", "font-size": "15px"},
+        style={"width": "90%", "margin-top": "15px"},
         children=[
-            html.H5("Parameter"),
+            html.Span("Parameter:", style={"font-weight": "bold"}),
             dcc.Dropdown(
                 id={"id": parent.uuid("parameter-select"), "tab": tab},
                 options=[{"label": i, "value": i} for i in parent.pmodel.parameters],
@@ -100,11 +99,48 @@ def parameter_selector(parent, tab: str) -> html.Div:
     )
 
 
+def date_selector(parent, tab: str) -> html.Div:
+    dates = sorted(parent.vmodel.dataframe["DATE"].unique())
+    return html.Div(
+        style={"width": "90%", "margin-top": "15px"},
+        children=[
+            html.Div(
+                style={"display": "inline-flex"},
+                children=[
+                    html.Span("Date:", style={"font-weight": "bold"}),
+                    html.Span(
+                        "date",
+                        id={"id": parent.uuid("date-selected"), "tab": tab},
+                        style={"margin-left": "10px"},
+                    ),
+                ],
+            ),
+            dcc.Slider(
+                id={"id": parent.uuid("date-slider-selector"), "tab": tab},
+                value=len(dates) - 1,
+                min=0,
+                max=len(dates) - 1,
+                included=False,
+                marks={
+                    idx: {
+                        "label": dates[idx],
+                        "style": {
+                            "white-space": "nowrap",
+                            "font-weight": "bold",
+                        },
+                    }
+                    for idx in [0, len(dates) - 1]
+                },
+            ),
+        ],
+    )
+
+
 def delta_ensemble_selector(parent, tab: str, multi: bool = False) -> html.Div:
     return html.Div(
         style={"width": "75%"},
         children=[
-            html.H5("Delta Ensemble"),
+            html.Span("Delta Ensemble:", style={"font-weight": "bold"}),
             dcc.Dropdown(
                 id={"id": parent.uuid("delta-ensemble-selector"), "tab": tab},
                 options=[
@@ -127,11 +163,10 @@ def filter_parameter(
     value: Union[str, float] = None,
 ) -> html.Div:
     return html.Div(
-        style={"margin-top": "25px"},
+        style={"margin-top": "15px"},
         children=[
-            html.H5("Parameters"),
+            html.Span("Parameters:", style={"font-weight": "bold"}),
             html.Div(
-                style={"font-size": "15px"},
                 children=[
                     wcc.Select(
                         id={
@@ -207,12 +242,12 @@ def filter_vector_selector(
                         },
                         options=[
                             {"label": i, "value": i}
-                            for i in parent.vmodel.vector_types.keys()
+                            for i in parent.vmodel.vector_groups.keys()
                         ],
                         value=[
                             x
                             for x in ["Field", "Well"]
-                            if x in parent.vmodel.vector_types
+                            if x in parent.vmodel.vector_groups
                         ],
                         clearable=False,
                         style={"background-color": "white"},
@@ -223,6 +258,7 @@ def filter_vector_selector(
                 ]
             ),
             html.Div(
+                style={"width": "70%"},
                 children=[
                     make_filter(
                         parent=parent,
@@ -234,7 +270,7 @@ def filter_vector_selector(
                         open_details=open_details,
                     )
                     for vtype, vlist in parent.vmodel.vector_selectors.items()
-                ]
+                ],
             ),
         ],
     )

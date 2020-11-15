@@ -11,13 +11,18 @@ def selector_view(parent) -> html.Div:
         className="framed",
         style={"height": "80vh", "overflowY": "auto", "font-size": "15px"},
         children=[
-            ensemble_selector(parent=parent, tab="qc"),
-            delta_ensemble_selector(parent=parent, tab="qc"),
-            filter_parameter(
-                parent=parent,
-                tab="qc",
-                value=[parent.pmodel.parameters[0]],
-            ),
+            html.Div(
+                children=[
+                    html.H5("Selections"),
+                    ensemble_selector(parent=parent, tab="qc"),
+                    delta_ensemble_selector(parent=parent, tab="qc"),
+                    filter_parameter(
+                        parent=parent,
+                        tab="qc",
+                        value=[parent.pmodel.parameters[0]],
+                    ),
+                ],
+            )
         ],
     )
 
