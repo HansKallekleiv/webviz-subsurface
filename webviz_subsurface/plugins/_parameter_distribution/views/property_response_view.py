@@ -7,71 +7,57 @@ from .selector_view import (
     vector_selector,
     parameter_selector,
     date_selector,
+    plot_options,
+    html_details,
 )
 
 
 def timeseries_view(parent) -> html.Div:
     return html.Div(
-        style={"height": "38vh"},
         children=[
-            html.Div(
+            wcc.WebvizPluginPlaceholder(
+                buttons=["expand"],
                 children=[
                     wcc.Graph(
                         id=parent.uuid("property-response-vector-graph"),
                         config={"displayModeBar": False},
                         style={"height": "38vh"},
                     ),
-                ]
-            ),
-        ],
-    )
-
-
-def correlation_view(parent) -> html.Div:
-    return html.Div(
-        style={"flex": 2, "height": "80vh"},
-        children=[
-            html.Div(
-                className="framed",
-                style={"height": "38vh"},
-                children=[
-                    wcc.Graph(
-                        config={"displayModeBar": False},
-                        style={"height": "38vh"},
-                        id=parent.uuid("property-response-correlation-graph"),
-                    ),
                 ],
             ),
-            html.Div(
-                className="framed",
-                style={"height": "38vh"},
-                children=[
-                    wcc.Graph(
-                        config={"displayModeBar": False},
-                        style={"height": "38vh"},
-                        id=parent.uuid("response-parameter-correlation-graph"),
-                    ),
-                ],
-            ),
-        ],
+        ]
     )
 
 
 def selector_view(parent) -> html.Div:
     return html.Div(
-        style={"height": "80vh", "overflowY": "auto", "font-size": "15px"},
+        style={
+            "height": "80vh",
+            "overflowY": "auto",
+            "font-size": "15px",
+        },
         className="framed",
         children=[
-            html.Div(
+            html_details(
+                summary="Selections",
                 children=[
-                    html.H5("Selections"),
                     ensemble_selector(parent=parent, tab="response"),
                     vector_selector(parent=parent, tab="response"),
                     date_selector(parent=parent, tab="response"),
                     parameter_selector(parent=parent, tab="response"),
-                    filter_vector_selector(parent=parent, tab="response"),
                 ],
-            )
+                open_details=True,
+            ),
+            html_details(
+                summary="Filters",
+                children=[filter_vector_selector(parent=parent, tab="response")],
+                open_details=False,
+            ),
+            html_details(
+                summary="Options",
+                children=[plot_options(parent=parent, tab="response")],
+                open_details=False,
+            ),
         ],
     )
 
@@ -81,9 +67,7 @@ def property_response_view(parent) -> wcc.FlexBox:
         style={"margin": "20px"},
         children=[
             html.Div(
-                style={
-                    "flex": 1,
-                },
+                style={"flex": 1, "width": "90%"},
                 children=selector_view(parent=parent),
             ),
             html.Div(
@@ -107,6 +91,32 @@ def property_response_view(parent) -> wcc.FlexBox:
                     ),
                 ],
             ),
-            correlation_view(parent=parent),
+            html.Div(
+                style={"flex": 2, "height": "80vh"},
+                children=[
+                    html.Div(
+                        className="framed",
+                        style={"height": "38vh"},
+                        children=[
+                            wcc.Graph(
+                                config={"displayModeBar": False},
+                                style={"height": "38vh"},
+                                id=parent.uuid("property-response-correlation-graph"),
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        className="framed",
+                        style={"height": "38vh"},
+                        children=[
+                            wcc.Graph(
+                                config={"displayModeBar": False},
+                                style={"height": "38vh"},
+                                id=parent.uuid("response-parameter-correlation-graph"),
+                            ),
+                        ],
+                    ),
+                ],
+            ),
         ],
     )

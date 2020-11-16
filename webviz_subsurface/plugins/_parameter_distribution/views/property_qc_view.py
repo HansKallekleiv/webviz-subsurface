@@ -3,7 +3,12 @@ import dash_core_components as dcc
 import webviz_core_components as wcc
 
 
-from .selector_view import ensemble_selector, delta_ensemble_selector, filter_parameter
+from .selector_view import (
+    ensemble_selector,
+    delta_ensemble_selector,
+    filter_parameter,
+    html_details,
+)
 
 
 def selector_view(parent) -> html.Div:
@@ -13,15 +18,20 @@ def selector_view(parent) -> html.Div:
         children=[
             html.Div(
                 children=[
-                    html.H5("Selections"),
-                    ensemble_selector(parent=parent, tab="qc"),
-                    delta_ensemble_selector(parent=parent, tab="qc"),
-                    filter_parameter(
-                        parent=parent,
-                        tab="qc",
-                        value=[parent.pmodel.parameters[0]],
-                    ),
-                ],
+                    html_details(
+                        summary="Selections",
+                        children=[
+                            ensemble_selector(parent=parent, tab="qc"),
+                            delta_ensemble_selector(parent=parent, tab="qc"),
+                            filter_parameter(
+                                parent=parent,
+                                tab="qc",
+                                value=[parent.pmodel.parameters[0]],
+                            ),
+                        ],
+                        open_details=True,
+                    )
+                ]
             )
         ],
     )

@@ -1,5 +1,5 @@
 from typing import Optional, Union
-
+from itertools import chain
 import pandas as pd
 from webviz_config.common_cache import CACHE
 
@@ -26,14 +26,19 @@ class SimulationTimeSeriesModel:
     ) -> None:
         self._dataframe = dataframe
         self._prepare_and_validate_data()
-
         self.theme = theme
-
         self._metadata = metadata
         self.line_shape_fallback = set_simulation_line_shape_fallback(
             line_shape_fallback
         )
-        self._split_vectors_by_type()
+        self._vectors = [
+            c
+            for c in self.dataframe.columns
+            if c not in ["REAL", "ENSEMBLE", "DATE"]
+            and not historical_vector(c, self.metadata, False) in self.dataframe.columns
+        ]
+        self._vector_groups = self._split_vectors_in_groups()
+        self._dates = sorted(self._dataframe["DATE"].unique())
 
     def _prepare_and_validate_data(self) -> None:
         for column in ["ENSEMBLE", "REAL", "DATE"]:
@@ -48,37 +53,43 @@ class SimulationTimeSeriesModel:
         if self.dataframe[self.dataframe["DATE"] == last_date]["FOPR"].mean() == 0:
             self._dataframe = self.dataframe[~(self.dataframe["DATE"] == last_date)]
 
-    def _split_vectors_by_type(self):
-        self._vectors = [
-            c
-            for c in self.dataframe.columns
-            if c not in ["REAL", "ENSEMBLE", "DATE"]
-            and not historical_vector(c, self.metadata, False) in self.dataframe.columns
+    def _split_vectors_in_groups(self):
+        vtypes = ["Field", "Well", "Region", "Block", "Group", "Connection"]
+        vgroups = {}
+        for vtype in vtypes:
+            vectors = [v for v in self.vectors if v.startswith(vtype[0])]
+            if vectors:
+                subitems = self._vector_subitems(vectors)
+                vgroups[vtype] = dict(vectors=vectors, shortnames=subitems[0])
+                if len(subitems) > 1:
+                    vgroups[vtype]["items"] = subitems[1]
+                if len(subitems) > 2:
+                    vgroups[vtype]["subitems"] = subitems[2]
+                if len(subitems) > 3:
+                    vgroups[vtype]["ijk"] = subitems[3]
+
+        other_vectors = [
+            x
+            for x in self.vectors
+            if x
+            not in list(
+                chain.from_iterable([vgroups[vtype]["vectors"] for vtype in vgroups])
+            )
         ]
+        vgroups["Others"] = dict(vectors=other_vectors, shortnames=other_vectors)
+        return vgroups
 
-        self._field_vectors = [v for v in self.vectors if v.startswith("F")]
-
-        self._well_vectors = [v for v in self.vectors if v.startswith("W")]
-        self._well_vectors_group = sorted(
-            list(set([v.split(":")[0] for v in self._well_vectors]))
-        )
-
-        self._region_vectors = [v for v in self.vectors if v.startswith("R")]
-        self._region_vectors_group = sorted(
-            list(set([v.split(":")[0] for v in self._region_vectors]))
-        )
-
-        self._other_vectors = [
-            v
-            for v in self.vectors
-            if v not in self._field_vectors + self._well_vectors + self._region_vectors
+    def _vector_subitems(self, vectors):
+        subitems = len(vectors[0].split(":"))
+        if subitems == 1:
+            return [vectors]
+        return [
+            sorted(
+                list(set([v.split(":")[idx] for v in vectors])),
+                key=int if vectors[0].split(":")[idx].isdigit() else None,
+            )
+            for idx in range(subitems)
         ]
-
-        self._wells = sorted(list(set([v.split(":")[-1] for v in self._well_vectors])))
-        self._regions = sorted(
-            list(set([v.split(":")[-1] for v in self._region_vectors])),
-            key=int,
-        )
 
     @property
     def colors(self) -> dict:
@@ -114,6 +125,10 @@ class SimulationTimeSeriesModel:
         return self._dataframe
 
     @property
+    def dates(self) -> pd.DataFrame:
+        return self._dates
+
+    @property
     def metadata(self) -> pd.DataFrame:
         return self._metadata
 
@@ -123,41 +138,7 @@ class SimulationTimeSeriesModel:
 
     @property
     def vector_groups(self):
-        return {
-            "Field": {
-                "vectors_main": self._field_vectors,
-                "vectors": self._field_vectors,
-            },
-            "Well": {
-                "vectors": self._well_vectors,
-                "vectors_main": self._well_vectors_group,
-                "subselect": self._wells,
-            },
-            "Region": {
-                "vectors": self._region_vectors,
-                "vectors_main": self._region_vectors_group,
-                "subselect": self._regions,
-            },
-            "Others": {
-                "vectors_main": self._other_vectors,
-                "vectors": self._other_vectors,
-            },
-        }
-
-    @property
-    def vector_selectors(self):
-        return {
-            "Wells": self.wells,
-            "Regions": self.regions,
-        }
-
-    @property
-    def wells(self):
-        return self._wells
-
-    @property
-    def regions(self):
-        return self._regions
+        return self._vector_groups
 
     @property
     def ens_colors(self) -> dict:
