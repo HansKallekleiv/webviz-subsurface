@@ -69,6 +69,7 @@ setup(
         "pillow>=6.1",
         "pyscal>=0.4.1",
         "scipy>=1.2",
+        "scikit-learn>=0.23.1",
         "webviz-config>=0.0.55",
         "webviz-subsurface-components>=0.2.0",
         "xtgeo>=2.8",
