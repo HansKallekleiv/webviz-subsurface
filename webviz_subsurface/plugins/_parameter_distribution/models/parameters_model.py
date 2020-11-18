@@ -55,6 +55,7 @@ class ParametersModel:
     def _prepare_data(self, drop_constants):
 
         self._dataframe = self._dataframe.reset_index(drop=True)
+        print(self._dataframe[["RMSGLOBPARAMS:FWL", "FWL"]])
 
         if drop_constants:
             constant_params = [
@@ -89,12 +90,13 @@ class ParametersModel:
                 if (":" in col and col not in self.REQUIRED_COLUMNS)
             }
         )
-
+        self._dataframe = self._dataframe.loc[:, ~self._dataframe.columns.duplicated()]
         self._parameters = [
             x for x in self._dataframe.columns if x not in self.REQUIRED_COLUMNS
         ]
 
     def _aggregate_ensemble_data(self, dframe) -> pd.DataFrame:
+        print(dframe.columns)
         return (
             dframe.drop(columns=["REAL"])
             .groupby(["ENSEMBLE"])
@@ -227,7 +229,7 @@ class ParametersModel:
         return fig
 
     def get_real_order(self, ensemble: str, parameter: str) -> pd.DataFrame:
-        df = self.dataframe_melted
+        df = self.dataframe_melted.copy()
         df = df[["VALUE", "REAL"]].loc[
             (df["ENSEMBLE"] == ensemble) & (df["PARAMETER"] == parameter)
         ]

@@ -28,7 +28,8 @@ from ._inplace_volumes import InplaceVolumes
 from ._inplace_volumes_onebyone import InplaceVolumesOneByOne
 from ._morris_plot import MorrisPlot
 from ._parameter_correlation import ParameterCorrelation
-#from ._parameter_distribution import ParameterDistribution
+
+# from ._parameter_distribution import ParameterDistribution
 from ._parameter_parallel_coordinates import ParameterParallelCoordinates
 from ._parameter_response_correlation import ParameterResponseCorrelation
 from ._property_statistics import PropertyStatistics
