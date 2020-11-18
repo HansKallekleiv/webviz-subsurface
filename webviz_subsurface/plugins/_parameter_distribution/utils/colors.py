@@ -1,4 +1,58 @@
 from typing import Tuple
+import plotly.express as px
+import plotly.graph_objs as go
+
+EQUINOR_COLORS = [
+    "#243746",
+    "#eb0036",
+    "#919ba2",
+    "#7d0023",
+    "#66737d",
+    "#4c9ba1",
+    "#a44c65",
+    "#80b7bc",
+    "#ff1243",
+    "#be8091",
+    "#b2d4d7",
+    "#ff597b",
+    "#bdc3c7",
+    "#d8b2bd",
+    "#ffe7d6",
+    "#d5eaf4",
+    "#ff88a1",
+]
+
+
+def color_figure(colorscales, height=None):
+
+    equinor_color_trace = go.Bar(
+        customdata=list(range(len(EQUINOR_COLORS[:11]))),
+        marker=dict(color=EQUINOR_COLORS[:11]),
+        orientation="h",
+        type="bar",
+        y=["Equinor"] * len(EQUINOR_COLORS[:11]),
+        x=[1] * len(EQUINOR_COLORS[:11]),
+    )
+
+    color_fig = px.colors.diverging.swatches()
+    color_fig.add_trace(equinor_color_trace).update_traces(
+        hovertemplate="%{marker.color}<extra></extra>"
+    ).update_layout(
+        title=None,
+        margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=height if height is not None else 40 * len(colorscales),
+        autosize=True,
+        yaxis_showticklabels=False,
+    )
+
+    color_fig["data"] = [
+        trace
+        for trace in color_fig["data"]
+        if trace["y"][0] in colorscales + ["Equinor"]
+    ]
+    return color_fig
 
 
 def hex_to_rgb(hex_string: str, opacity: float = 1) -> str:
@@ -8,6 +62,12 @@ def hex_to_rgb(hex_string: str, opacity: float = 1) -> str:
     rgb = [int(hex_string[i : i + hlen // 3], 16) for i in range(0, hlen, hlen // 3)]
     rgb.append(opacity)
     return f"rgba{tuple(rgb)}"
+
+
+def rgb_to_hex(color):
+    color = color.strip("rgb()")
+    color = color.split(",")
+    return "#%02x%02x%02x" % (int(color[0]), int(color[1]), int(color[2]))
 
 
 def find_intermediate_color(

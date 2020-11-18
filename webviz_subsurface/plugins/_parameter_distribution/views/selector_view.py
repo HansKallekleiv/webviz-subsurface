@@ -3,6 +3,7 @@ from typing import Union
 import dash_html_components as html
 import dash_core_components as dcc
 import webviz_core_components as wcc
+from ..utils.colors import color_figure
 
 
 def ensemble_selector(
@@ -70,6 +71,10 @@ def vector_selector(parent, tab: str) -> html.Div:
             ),
             html.Div(
                 id={"id": parent.uuid("vector-select"), "tab": tab},
+                style={"display": "none"},
+            ),
+            html.Div(
+                id={"id": parent.uuid("date-hidden"), "tab": tab},
                 style={"display": "none"},
             ),
         ],
@@ -186,7 +191,7 @@ def filter_parameter(
                         ],
                         value=value,
                         multi=multi,
-                        size=min(25, len(parent.pmodel.parameters)),
+                        size=min(40, len(parent.pmodel.parameters)),
                         persistence=True,
                         persistence_type="session",
                     ),
@@ -237,6 +242,7 @@ def filter_vector_selector(
     open_details: bool = True,
 ) -> html.Div:
     return html.Div(
+        style={"width": "90%"},
         children=[
             html.Span("Vector type:", style={"font-weight": "bold"}),
             dcc.Dropdown(
@@ -280,6 +286,23 @@ def filter_vector_selector(
     )
 
 
+def color_selector(parent, tab: str, colorscales: list, height=None):
+    return html.Div(
+        style={"width": "90%", "margin-top": "5px"},
+        children=[
+            html.Span("Colors:", style={"font-weight": "bold"}),
+            wcc.Graph(
+                id={
+                    "id": parent.uuid("color-selector"),
+                    "tab": tab,
+                },
+                config={"displayModeBar": False},
+                figure=color_figure(colorscales, height),
+            ),
+        ],
+    )
+
+
 def html_details(
     summary: str,
     children: list,
@@ -293,10 +316,12 @@ def html_details(
                 html.Summary(
                     summary,
                     style={
-                        "color": "white",
+                        "color": "#ff1243",
+                        "border-bottom-style": "solid",
+                        "border-width": "thin",
+                        "border-color": "#ff1243",
                         "font-weight": "bold",
                         "font-size": "20px",
-                        "background": "#243746",
                         "margin-bottom": "15px",
                     },
                 )

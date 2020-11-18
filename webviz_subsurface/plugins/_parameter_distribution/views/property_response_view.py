@@ -1,6 +1,6 @@
 import dash_html_components as html
 import webviz_core_components as wcc
-
+import dash_core_components as dcc
 from .selector_view import (
     ensemble_selector,
     filter_vector_selector,
@@ -9,27 +9,24 @@ from .selector_view import (
     date_selector,
     plot_options,
     html_details,
+    color_selector,
 )
 
 
 def timeseries_view(parent) -> html.Div:
     return html.Div(
         children=[
-            wcc.WebvizPluginPlaceholder(
-                buttons=["expand"],
-                children=[
-                    wcc.Graph(
-                        id=parent.uuid("property-response-vector-graph"),
-                        config={"displayModeBar": False},
-                        style={"height": "38vh"},
-                    ),
-                ],
+            wcc.Graph(
+                id=parent.uuid("property-response-vector-graph"),
+                config={"displayModeBar": False},
+                style={"height": "38vh"},
             ),
-        ]
+        ],
     )
 
 
 def selector_view(parent) -> html.Div:
+
     return html.Div(
         style={
             "height": "80vh",
@@ -55,7 +52,22 @@ def selector_view(parent) -> html.Div:
             ),
             html_details(
                 summary="Options",
-                children=[plot_options(parent=parent, tab="response")],
+                children=[
+                    plot_options(parent=parent, tab="response"),
+                    color_selector(
+                        parent=parent, tab="response", colorscales=["BrBG", "RdGy"]
+                    ),
+                    "Opacity:",
+                    dcc.Input(
+                        id="input_range",
+                        type="number",
+                        min=0,
+                        max=1,
+                        step=0.1,
+                        value=0.7,
+                        style={"width": "10%"},
+                    ),
+                ],
                 open_details=False,
             ),
         ],

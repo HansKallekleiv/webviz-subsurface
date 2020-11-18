@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from ..utils.colors import find_intermediate_color
 from ..figures.correlation_figure import CorrelationFigure
-from ..utils.colors import hex_to_rgb
+from ..utils.colors import hex_to_rgb, rgb_to_hex
 
 
 def property_response_controller(parent, app):
@@ -44,6 +44,7 @@ def property_response_controller(parent, app):
             "value",
         ),
         Input({"id": parent.uuid("show-dateline"), "tab": "response"}, "value"),
+        Input({"id": parent.uuid("color-selector"), "tab": "response"}, "clickData"),
         State(parent.uuid("property-response-vector-graph"), "figure"),
         State(parent.uuid("response-parameter-correlation-graph"), "figure"),
         State(parent.uuid("property-response-correlation-graph"), "figure"),
@@ -58,6 +59,7 @@ def property_response_controller(parent, app):
         vector_type_filter: list,
         vector_item_filters: list,
         show_dateline: str,
+        color_selected: dict,
         timeseries_fig: dict,
         corr_p_fig: dict,
         corr_v_fig: dict,
@@ -75,8 +77,17 @@ def property_response_controller(parent, app):
         if isinstance(ctx, dict):
             ctx = ctx["id"]
 
-        if parent.uuid("show-dateline") not in ctx:
-            daterange = parent.vmodel.daterange_for_plot(vector=vector)
+        color_selected = (
+            color_selected["points"][0]["marker.color"]
+            if color_selected is not None
+            else None
+        )
+
+        daterange = parent.vmodel.daterange_for_plot(vector=vector)
+        if (
+            parent.uuid("show-dateline") not in ctx
+            or parent.uuid("color-selector") not in ctx
+        ):
             # Make timeseries graph
             if (
                 uuids_impact(parent, ctx, plot="timeseries_fig")
@@ -86,7 +97,7 @@ def property_response_controller(parent, app):
                     parent.vmodel,
                     ensemble,
                     vector,
-                    daterange,
+                    xaxisrange=[min(daterange[0], date), max(daterange[1], date)],
                     real_filter=None,
                 )
 
@@ -121,7 +132,8 @@ def property_response_controller(parent, app):
             parameter = (
                 parameter if parameter is not None else corr_v_fig["data"][0]["y"][-1]
             )
-            corr_v_fig = color_corr_bars(corr_v_fig, parameter)
+
+            corr_v_fig = color_corr_bars(corr_v_fig, parameter, color_selected)
 
             # Make correlation figure for parameter
             if (
@@ -135,11 +147,20 @@ def property_response_controller(parent, app):
                     merged_df, response=parameter
                 ).figure
 
-            corr_p_fig = color_corr_bars(corr_p_fig, vector)
+            corr_p_fig = color_corr_bars(corr_p_fig, vector, color_selected)
 
             # Create scatter plot of vector vs parameter
             if uuids_impact(parent, ctx, plot="scatter") or scatter_fig is None:
-                scatter_fig = update_scatter_graph(merged_df, vector, parameter)
+                scatter_fig = update_scatter_graph(
+                    merged_df, vector, parameter, color_selected
+                )
+
+            color = color_selected if color_selected is not None else "#007079"
+            if "rgb" in color:
+                color = rgb_to_hex(color)
+            for x in scatter_fig["data"]:
+                if x["mode"] == "markers":
+                    x["marker"].update(color=hex_to_rgb(color, 0.7))
 
             # Order realizations sorted on value of parameter and color traces
             real_order = parent.pmodel.get_real_order(ensemble, parameter=parameter)
@@ -149,6 +170,12 @@ def property_response_controller(parent, app):
 
         # Draw date selected as line
         timeseries_fig = add_date_line(timeseries_fig, date, show_dateline)
+
+        # Ensure xaxis covers selected date
+        if parent.uuid("date-selected") in ctx:
+            timeseries_fig["layout"]["xaxis"].update(
+                range=[min(daterange[0], date), max(daterange[1], date)]
+            )
 
         return timeseries_fig, scatter_fig, corr_v_fig, corr_p_fig
 
@@ -306,7 +333,7 @@ def filter_vectors(parent, vector_types: list = None, vector_items: list = None)
 
 
 def update_timeseries_graph(
-    timeseries_model, ensemble, vector, daterange, real_filter=None
+    timeseries_model, ensemble, vector, xaxisrange, real_filter=None
 ):
     return {
         "data": timeseries_model.add_realization_traces(
@@ -315,7 +342,7 @@ def update_timeseries_graph(
         "layout": dict(
             margin={"r": 50, "l": 20, "t": 60, "b": 20},
             yaxis={"automargin": True},
-            xaxis={"range": daterange},
+            xaxis={"range": xaxisrange},
             hovermode="closest",
             paper_bgcolor="white",
             plot_bgcolor="white",
@@ -359,8 +386,6 @@ def color_timeseries_graph(figure, ensemble, selected_param, vector, real_order=
     """Color timeseries lines by parameter value"""
     if real_order is not None:
         mean = real_order["VALUE"].mean()
-        min_val = real_order["VALUE"].min()
-        max_val = real_order["VALUE"].max()
         low_reals = real_order[real_order["VALUE"] <= mean]["REAL"].astype(str).values
         high_reals = real_order[real_order["VALUE"] > mean]["REAL"].astype(str).values
         for trace_no, trace in enumerate(figure.get("data", [])):
@@ -435,19 +460,22 @@ def max_avg_min_colorbar(
     return shapes
 
 
-def update_scatter_graph(df, vector, selected_param):
+def update_scatter_graph(df, vector, selected_param, color=None):
     colors = [
         "#FF1243",
         "#243746",
         "#007079",
     ]
+    color = color if color is not None else colors[2]
+    if "rgb" in color:
+        color = rgb_to_hex(color)
     return (
         px.scatter(
             df[[vector, selected_param]],
             x=selected_param,
             y=vector,
-            trendline="ols",
-            trendline_color_override="#243746",
+            trendline="ols" if df[vector].nunique() > 1 else None,
+            trendline_color_override=colors[1],
         )
         .update_layout(
             margin={
@@ -463,7 +491,7 @@ def update_scatter_graph(df, vector, selected_param):
         .update_traces(
             marker={
                 "size": 15,
-                "color": hex_to_rgb(colors[2], 0.7),
+                "color": hex_to_rgb(color, 0.7),
             }
         )
         .update_xaxes(title=None)
@@ -491,23 +519,25 @@ def correlate(df, response):
     return corrdf.reindex(corrdf.abs().sort_values().index)
 
 
-def color_corr_bars(figure, selected_bar):
+def color_corr_bars(figure, selected_bar, color=None):
     colors = [
         "#FF1243",
         "#243746",
         "#007079",
     ]
-
+    color = color if color is not None else colors[2]
+    if "rgb" in color:
+        color = rgb_to_hex(color)
     figure["data"][0]["marker"] = {
         "color": [
-            hex_to_rgb(colors[2], 0.4)
+            hex_to_rgb(color, 0.7)
             if _bar != selected_bar
             else hex_to_rgb(colors[0], 0.8)
             for _bar in figure["data"][0]["y"]
         ],
         "line": {
             "color": [
-                colors[2] if _bar != selected_bar else colors[0]
+                color if _bar != selected_bar else colors[0]
                 for _bar in figure["data"][0]["y"]
             ],
             "width": 1.2,
