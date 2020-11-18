@@ -45,9 +45,18 @@ class EnsembleSetModel:
             ],
         )
 
+    def load_parameters(self):
+        self.webvizstore.append(
+            (
+                self._load_parameters,
+                [{"self": self}],
+            )
+        )
+        return self._load_parameters()
+
     @CACHE.memoize(timeout=CACHE.TIMEOUT)
     @webvizstore
-    def load_parameters(self) -> pd.DataFrame:
+    def _load_parameters(self) -> pd.DataFrame:
         return self.load_ensemble_set().parameters
 
     def load_smry(
