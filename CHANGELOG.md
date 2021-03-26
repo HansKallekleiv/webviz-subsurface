@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED] - YYYY-MM-DD
 
+### Added
+- [#605](https://github.com/equinor/webviz-subsurface/pull/605) - New plugin to analyze structural uncertainty from FMU ensembles.
+
 ## [0.2.0] - 2021-03-28
 ### Changed
 - [#604](https://github.com/equinor/webviz-subsurface/pull/604) - Consolidates surface loading and statistical calculation of surfaces by introducing a shared
