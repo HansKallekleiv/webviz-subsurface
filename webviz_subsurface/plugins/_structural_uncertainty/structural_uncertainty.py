@@ -219,7 +219,9 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                 raise ValueError(
                     "No surfaces found with the provided surface name filter!"
                 )
-        surface_table = surface_table[surface_table["name"].isin(surface_name_filter)]
+            surface_table = surface_table[
+                surface_table["name"].isin(surface_name_filter)
+            ]
         self._surface_ensemble_set_model = {
             ens: SurfaceSetModel(surf_ens_df)
             for ens, surf_ens_df in surface_table.groupby("ENSEMBLE")
