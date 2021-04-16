@@ -129,11 +129,10 @@ def source_layout(uuid: str, use_wells: bool = True) -> html.Div:
     if use_wells:
         options.append({"label": "Intersect well", "value": "well"})
     return html.Div(
-        style={"display": "none"} if not use_wells else {},
         children=dcc.Dropdown(
             id={"id": uuid, "element": "source"},
             options=options,
-            value="well" if use_wells else "surface",
+            value="well" if use_wells else "polyline",
             clearable=False,
             persistence=True,
             persistence_type="session",
@@ -147,7 +146,9 @@ def well_layout(
     return html.Div(
         style={
             "display": "none",
-        },
+        }
+        if value is None
+        else {},
         id={"id": uuid, "element": "well-wrapper"},
         children=html.Label(
             children=[
