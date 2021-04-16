@@ -1,5 +1,4 @@
-from .intersection_source import intersection_source_layout
-from .intersection_data import intersection_data_layout
+from .intersection_data import intersection_data_layout, html_details
 from .map_data_modal import map_data_layout
 from .realization_modal import realization_layout
 from .intersection_and_map import intersection_and_map_layout

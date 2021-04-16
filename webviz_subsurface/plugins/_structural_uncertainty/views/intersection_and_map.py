@@ -17,45 +17,50 @@ def intersection_and_map_layout(get_uuid: Callable) -> html.Div:
                     ),
                 ],
             ),
-            wcc.FlexBox(
-                style={"height": "40vh"},
-                className="framed",
-                id=get_uuid("all-maps-wrapper"),
+            html.Div(
+                id=get_uuid("maps-and-uncertainty-table-wrapper"),
                 children=[
-                    html.Div(
-                        style={"flex": 1},
-                        id=get_uuid("map-wrapper"),
-                        children=map_layout(
-                            uuid=get_uuid("map"),
-                            leaflet_id=get_uuid("leaflet-map"),
-                            synced_uuids=[
-                                get_uuid("leaflet-map2"),
-                                get_uuid("leaflet-map3"),
-                            ],
-                            draw_polyline=True,
-                        ),
-                    ),
-                    html.Div(
-                        style={"flex": 1},
-                        children=map_layout(
-                            uuid=get_uuid("map2"),
-                            leaflet_id=get_uuid("leaflet-map2"),
-                            synced_uuids=[
-                                get_uuid("leaflet-map"),
-                                get_uuid("leaflet-map3"),
-                            ],
-                        ),
-                    ),
-                    html.Div(
-                        style={"flex": 1},
-                        children=map_layout(
-                            uuid=get_uuid("map3"),
-                            leaflet_id=get_uuid("leaflet-map3"),
-                            synced_uuids=[
-                                get_uuid("leaflet-map"),
-                                get_uuid("leaflet-map2"),
-                            ],
-                        ),
+                    wcc.FlexBox(
+                        style={"height": "40vh"},
+                        className="framed",
+                        id=get_uuid("all-maps-wrapper"),
+                        children=[
+                            html.Div(
+                                style={"flex": 1},
+                                id=get_uuid("map-wrapper"),
+                                children=map_layout(
+                                    uuid=get_uuid("map"),
+                                    leaflet_id=get_uuid("leaflet-map"),
+                                    synced_uuids=[
+                                        get_uuid("leaflet-map2"),
+                                        get_uuid("leaflet-map3"),
+                                    ],
+                                    draw_polyline=True,
+                                ),
+                            ),
+                            html.Div(
+                                style={"flex": 1},
+                                children=map_layout(
+                                    uuid=get_uuid("map2"),
+                                    leaflet_id=get_uuid("leaflet-map2"),
+                                    synced_uuids=[
+                                        get_uuid("leaflet-map"),
+                                        get_uuid("leaflet-map3"),
+                                    ],
+                                ),
+                            ),
+                            html.Div(
+                                style={"flex": 1},
+                                children=map_layout(
+                                    uuid=get_uuid("map3"),
+                                    leaflet_id=get_uuid("leaflet-map3"),
+                                    synced_uuids=[
+                                        get_uuid("leaflet-map"),
+                                        get_uuid("leaflet-map2"),
+                                    ],
+                                ),
+                            ),
+                        ],
                     ),
                 ],
             ),

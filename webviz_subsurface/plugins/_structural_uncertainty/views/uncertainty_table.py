@@ -60,6 +60,7 @@ def uncertainty_table_btn(uuid: str, disabled: bool = False) -> html.Button:
     return html.Div(
         children=html.Button(
             "Show uncertainty table",
+            className="webviz-structunc-open-modal-btn",
             id={"id": uuid, "element": "display-button"},
             disabled=disabled,
         ),

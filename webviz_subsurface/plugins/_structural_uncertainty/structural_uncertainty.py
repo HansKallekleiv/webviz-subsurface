@@ -16,7 +16,6 @@ from webviz_subsurface._datainput.fmu_input import get_realizations, find_surfac
 from webviz_subsurface._utils.webvizstore_functions import get_path, find_files
 from webviz_subsurface._components import ColorPicker
 from .views import (
-    intersection_source_layout,
     intersection_data_layout,
     map_data_layout,
     realization_layout,
@@ -25,6 +24,7 @@ from .views import (
     modal,
     uncertainty_table_layout,
     uncertainty_table_btn,
+    html_details,
 )
 from .controllers import (
     open_modals,
@@ -277,71 +277,79 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                 wcc.FlexBox(
                     children=[
                         html.Div(
-                            style={"height": "97vh", "flex": 1, "fontSize": "0.8em"},
+                            className="framed",
+                            style={
+                                "height": "91vh",
+                                "flex": 1,
+                                "fontSize": "0.8em",
+                                "overflowY": "auto",
+                            },
                             children=[
                                 html.Div(
-                                    className="framed",
-                                    children=intersection_source_layout(
-                                        get_uuid=self.uuid,
-                                        use_wells=self._use_wells,
-                                        well_names=self._well_set_model.well_names
-                                        if self._well_set_model
-                                        else [],
-                                        initial_settings=self._initial_settings.get(
-                                            "intersection_data", {}
-                                        ),
-                                    ),
-                                ),
-                                html.Div(
-                                    className="framed",
-                                    children=intersection_data_layout(
-                                        get_uuid=self.uuid,
-                                        surface_attributes=self._surface_attributes,
-                                        surface_names=self._surfacenames,
-                                        ensembles=self.ensembles,
-                                        initial_settings=self._initial_settings.get(
-                                            "intersection_data", {}
-                                        ),
-                                    ),
-                                ),
-                                html.Div(
-                                    className="framed",
                                     children=[
-                                        html.Div(
-                                            style={"padding": "5px"},
-                                            id=self.uuid("surface-settings-wrapper"),
+                                        html_details(
+                                            summary="Intersection controls",
+                                            open_details=True,
                                             children=[
-                                                modal.open_modal_layout(
-                                                    uuid=self.uuid("modal"),
-                                                    modal_id="surface-settings",
-                                                    title="Map data",
+                                                intersection_data_layout(
+                                                    get_uuid=self.uuid,
+                                                    surface_attributes=self._surface_attributes,
+                                                    surface_names=self._surfacenames,
+                                                    ensembles=self.ensembles,
+                                                    use_wells=self._use_wells,
+                                                    well_names=self._well_set_model.well_names
+                                                    if self._well_set_model
+                                                    else [],
+                                                    initial_settings=self._initial_settings.get(
+                                                        "intersection_data", {}
+                                                    ),
                                                 ),
                                             ],
                                         ),
-                                        html.Div(
-                                            style={
-                                                "marginTop": "20px",
-                                                "marginBottom": "10px",
-                                            },
-                                            id=self.uuid("realization-filter-wrapper"),
+                                        html_details(
+                                            summary="Map controls",
+                                            open_details=True,
                                             children=[
-                                                modal.open_modal_layout(
-                                                    uuid=self.uuid("modal"),
-                                                    modal_id="realization-filter",
-                                                    title="Realization filter",
+                                                html.Div(
+                                                    style={"padding": "5px"},
+                                                    id=self.uuid(
+                                                        "surface-settings-wrapper"
+                                                    ),
+                                                    children=[
+                                                        modal.open_modal_layout(
+                                                            uuid=self.uuid("modal"),
+                                                            modal_id="surface-settings",
+                                                            title="Map data",
+                                                        ),
+                                                    ],
                                                 ),
                                             ],
                                         ),
-                                        html.Div(
-                                            style={
-                                                "marginTop": "20px",
-                                                "marginBottom": "10px",
-                                            },
-                                            id=self.uuid("uncertainty-table-wrapper"),
+                                        html_details(
+                                            summary="Common settings",
+                                            open_details=True,
                                             children=[
-                                                uncertainty_table_btn(
-                                                    uuid=self.uuid("uncertainty-table"),
-                                                    disabled=not self._use_wells,
+                                                html.Div(
+                                                    style={
+                                                        "marginTop": "10px",
+                                                        "marginBottom": "10px",
+                                                    },
+                                                    id=self.uuid(
+                                                        "realization-filter-wrapper"
+                                                    ),
+                                                    children=[
+                                                        modal.open_modal_layout(
+                                                            uuid=self.uuid("modal"),
+                                                            modal_id="realization-filter",
+                                                            title="Realization filter",
+                                                        ),
+                                                        uncertainty_table_btn(
+                                                            uuid=self.uuid(
+                                                                "uncertainty-table"
+                                                            ),
+                                                            disabled=not self._use_wells,
+                                                        ),
+                                                    ],
                                                 ),
                                             ],
                                         ),

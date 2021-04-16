@@ -50,7 +50,6 @@ def update_intersection(
         ),
         State({"id": get_uuid("intersection_data"), "element": "ensembles"}, "value"),
         State({"id": get_uuid("intersection_data"), "element": "distance"}, "value"),
-        State({"id": get_uuid("intersection_data"), "element": "atleast"}, "value"),
         State({"id": get_uuid("intersection_data"), "element": "nextend"}, "value"),
         State(color_picker.color_store_id, "data"),
     )
@@ -66,7 +65,6 @@ def update_intersection(
         statistics: List[str],
         ensembles: str,
         distance: float,
-        atleast: int,
         nextend: int,
         color_list: List[str],
     ) -> List:
@@ -78,7 +76,7 @@ def update_intersection(
         # have not yet found a solution that prohibits the input field from being cleared.
         # The situation can be slightly remedied by setting required=True which will highlight
         # the missing value with a red rectangle.
-        if any(val is None for val in [distance, atleast, nextend]):
+        if any(val is None for val in [distance, nextend]):
             raise PreventUpdate
         traces = []
         if intersection_source == "surface":
@@ -86,11 +84,14 @@ def update_intersection(
             if polyline is None:
                 return []
             fence_spec = get_fencespec_from_polyline(
-                polyline, distance=distance, atleast=atleast, nextend=nextend
+                polyline, distance=distance, atleast=5, nextend=nextend / distance
             )
         else:
             fence_spec = well_set_model.get_fence(
-                well_name=wellname, distance=distance, atleast=atleast, nextend=nextend
+                well_name=wellname,
+                distance=distance,
+                atleast=5,
+                nextend=nextend / distance,
             )
         realizations = [int(real) for real in realizations]
         for ensemble in ensembles:
@@ -243,6 +244,7 @@ def update_intersection(
         if ui_options:
             if "uirevision" in ui_options:
                 layout.update({"uirevision": "keep"})
+
             if (
                 "auto_yrange_polyline" in ui_options
                 and intersection_source == "surface"

@@ -1,4 +1,4 @@
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Optional
 
 import dash_core_components as dcc
 import dash_html_components as html
@@ -12,18 +12,37 @@ def intersection_data_layout(
     surface_attributes: List[str],
     surface_names: List[str],
     ensembles: List[str],
+    use_wells: bool,
+    well_names: List[str],
     initial_settings: Dict,
 ) -> html.Div:
     """Layout for selecting intersection data"""
     return html.Div(
         id=get_uuid("intersection-data-wrapper"),
         children=[
-            html.H6(
-                "Intersection data",
+            html.Div(
                 style={
-                    "textAlign": "center",
-                    "fontWeight": "bold",
+                    "padding-bottom": "10px",
+                    "border-bottom-style": "solid",
+                    "border-width": "thin",
+                    "border-color": "grey",
                 },
+                id=get_uuid("intersection-source-wrapper"),
+                children=[
+                    html.Span("Intersection source", style={"font-weight": "bold"}),
+                    source_layout(
+                        uuid=get_uuid("intersection_data"),
+                        use_wells=use_wells,
+                    ),
+                    well_layout(
+                        uuid=get_uuid("intersection_data"),
+                        well_names=well_names,
+                        value=initial_settings.get(
+                            "well",
+                            well_names[0] if use_wells else None,
+                        ),
+                    ),
+                ],
             ),
             surface_attribute_layout(
                 uuid=get_uuid("intersection_data"),
@@ -47,25 +66,116 @@ def intersection_data_layout(
                 uuid=get_uuid("intersection_data"),
                 value=initial_settings.get("calculation", ["Mean", "Min", "Max"]),
             ),
-            html.Div(
-                style={"marginBottom": "10px"},
-                children=[
-                    range_layout(
-                        uuid=get_uuid("intersection_data"),
-                        distance=initial_settings.get("distance", 20),
-                        atleast=initial_settings.get("atleast", 5),
-                        nextend=initial_settings.get("nextend", 2),
-                    ),
-                ],
-            ),
-            open_modal_layout(
-                modal_id="color",
-                uuid=get_uuid("modal"),
-                title="Intersection colors",
-            ),
             blue_apply_button(
                 uuid=get_uuid("apply-intersection-data-selections"),
                 title="Update intersection",
+            ),
+            html.Details(
+                style={
+                    "marginTop": "15px",
+                    "marginBottom": "10px",
+                },
+                open=False,
+                children=[
+                    html.Summary(
+                        style={
+                            "font-size": "20px",
+                            "font-weight": "bold",
+                        },
+                        children="Settings",
+                    ),
+                    html.Div(
+                        children=[
+                            range_layout(
+                                uuid=get_uuid("intersection_data"),
+                                distance=initial_settings.get("distance", 20),
+                                nextend=initial_settings.get("nextend", 200),
+                            ),
+                            options_layout(
+                                uuid=get_uuid("intersection-graph-layout-options"),
+                                initial_layout=initial_settings.get(
+                                    "intersection_layout", {}
+                                ),
+                            ),
+                            open_modal_layout(
+                                modal_id="color",
+                                uuid=get_uuid("modal"),
+                                title="Intersection colors",
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def source_layout(uuid: str, use_wells: bool = True) -> html.Div:
+    options = [
+        {"label": "Intersect polyline from Surface A", "value": "surface"},
+    ]
+    if use_wells:
+        options.append({"label": "Intersect well", "value": "well"})
+    return html.Div(
+        style={"display": "none"} if not use_wells else {},
+        children=dcc.RadioItems(
+            labelStyle={"display": "inline-block"},
+            id={"id": uuid, "element": "source"},
+            options=options,
+            value="well" if use_wells else "surface",
+            persistence=True,
+            persistence_type="session",
+        ),
+    )
+
+
+def well_layout(
+    uuid: str, well_names: List[str], value: Optional[str] = None
+) -> html.Div:
+    return html.Div(
+        style={
+            "display": "none",
+        }
+        if value is None
+        else {},
+        children=html.Label(
+            children=[
+                html.Span("Well:", style={"font-weight": "bold"}),
+                dcc.Dropdown(
+                    id={"id": uuid, "element": "well"},
+                    options=[{"label": well, "value": well} for well in well_names],
+                    value=value,
+                    clearable=False,
+                    persistence=True,
+                    persistence_type="session",
+                ),
+            ]
+        ),
+    )
+
+
+def options_layout(uuid: str, initial_layout: Optional[Dict] = None) -> html.Div:
+    value = ["auto_yrange_polyline"]
+    if initial_layout is not None:
+        if initial_layout.get("uirevision"):
+            value.append("uirevision")
+    options = [
+        {"label": "Keep zoom state", "value": "uirevision"},
+        {"label": "Auto z-range (polyline)", "value": "auto_yrange_polyline"},
+    ]
+
+    return html.Div(
+        style={
+            "marginTop": "10px",
+            "marginBottom": "10px",
+        },
+        children=[
+            dcc.Checklist(
+                id=uuid,
+                options=options,
+                value=value,
+                persistence=True,
+                persistence_type="session",
             ),
         ],
     )
@@ -100,7 +210,7 @@ def surface_names_layout(
     uuid: str, surface_names: List[str], value: List[str]
 ) -> html.Div:
     return html.Div(
-        style={"marginTop": "10px"},
+        style={"marginTop": "5px"},
         children=html.Label(
             children=[
                 html.Span("Surfacenames", style={"font-weight": "bold"}),
@@ -123,7 +233,7 @@ def surface_names_layout(
 
 def ensemble_layout(uuid: str, ensemble_names: List[str], value: List[str]) -> html.Div:
     return html.Div(
-        style={"marginTop": "10px"},
+        style={"marginTop": "5px"},
         children=html.Label(
             children=[
                 html.Span("Ensembles", style={"font-weight": "bold"}),
@@ -131,7 +241,7 @@ def ensemble_layout(uuid: str, ensemble_names: List[str], value: List[str]) -> h
                     id={"id": uuid, "element": "ensembles"},
                     options=[{"label": ens, "value": ens} for ens in ensemble_names],
                     value=value,
-                    size=4,
+                    size=2,
                     persistence=True,
                     persistence_type="session",
                 ),
@@ -161,6 +271,10 @@ def statistical_layout(uuid: str, value: List[str]) -> html.Div:
                     value=value,
                     persistence=True,
                     persistence_type="session",
+                    labelStyle={
+                        "display": "inline-block",
+                        "margin-right": "5px",
+                    },
                 ),
             ]
         ),
@@ -175,16 +289,13 @@ def blue_apply_button(uuid: str, title: str) -> html.Div:
     )
 
 
-def range_layout(uuid: str, distance: float, atleast: int, nextend: int) -> html.Div:
+def range_layout(uuid: str, distance: float, nextend: int) -> html.Div:
     return html.Div(
         children=[
-            html.Label(
-                style={"font-weight": "bold"}, children="Intersection settings:"
-            ),
             html.Div(
                 children=[
                     html.Label(
-                        "Horizontal distance between points",
+                        "Resolution (m) ",
                         className="webviz-structunc-range-label",
                     ),
                     dcc.Input(
@@ -202,25 +313,7 @@ def range_layout(uuid: str, distance: float, atleast: int, nextend: int) -> html
             html.Div(
                 children=[
                     html.Label(
-                        "Minimum number of points",
-                        className="webviz-structunc-range-label",
-                    ),
-                    dcc.Input(
-                        className="webviz-structunc-range-input",
-                        id={"id": uuid, "element": "atleast"},
-                        debounce=True,
-                        type="number",
-                        required=True,
-                        value=atleast,
-                        persistence=True,
-                        persistence_type="session",
-                    ),
-                ],
-            ),
-            html.Div(
-                children=[
-                    html.Label(
-                        "Extension (distance * nextend)",
+                        "Extension (m) ",
                         className="webviz-structunc-range-label",
                     ),
                     dcc.Input(
@@ -235,5 +328,33 @@ def range_layout(uuid: str, distance: float, atleast: int, nextend: int) -> html
                     ),
                 ],
             ),
-        ]
+        ],
+    )
+
+
+def html_details(
+    summary: str,
+    children: list,
+    open_details: bool = False,
+) -> html.Div:
+    return html.Div(
+        html.Details(
+            style={"margin-bottom": "25px"},
+            open=open_details,
+            children=[
+                html.Summary(
+                    children=summary,
+                    style={
+                        "color": "#ff1243",
+                        "border-bottom-style": "solid",
+                        "border-width": "thin",
+                        "border-color": "#ff1243",
+                        "font-weight": "bold",
+                        "font-size": "20px",
+                        "margin-bottom": "15px",
+                    },
+                )
+            ]
+            + children,
+        )
     )
