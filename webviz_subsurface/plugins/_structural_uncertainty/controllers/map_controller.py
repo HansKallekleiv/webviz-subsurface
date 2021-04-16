@@ -88,6 +88,9 @@ def update_maps(
         Input(get_uuid("realization-store"), "data"),
         Input({"id": get_uuid("intersection_data"), "element": "well"}, "value"),
         Input({"id": get_uuid("map"), "element": "stored_polyline"}, "data"),
+        Input({"id": get_uuid("map"), "element": "stored_xline"}, "data"),
+        Input({"id": get_uuid("map"), "element": "stored_yline"}, "data"),
+        Input({"id": get_uuid("intersection_data"), "element": "source"}, "value"),
         State(get_uuid("leaflet-map"), "layers"),
         State(get_uuid("leaflet-map2"), "layers"),
         State(get_uuid("leaflet-map3"), "layers"),
@@ -110,6 +113,9 @@ def update_maps(
         real_list: List[str],
         wellname: Optional[str],
         polyline: Optional[List],
+        xline: Optional[List],
+        yline: Optional[List],
+        source: str,
         current_map: List,
         current_map2: List,
         current_map3: List,
@@ -118,22 +124,48 @@ def update_maps(
         realizations = [int(real) for real in real_list]
         ctx = dash.callback_context.triggered[0]
 
+        # Check if map is already generated and should just be updated with polylines
+        update_poly_only = bool(
+            current_map
+            and (
+                "stored_polyline" in ctx["prop_id"]
+                or "stored_yline" in ctx["prop_id"]
+                or "stored_xline" in ctx["prop_id"]
+            )
+        )
+
         if polyline is not None:
-            poly_layer = create_leaflet_polyline_layer(polyline)
-            # If callback is triggered by polyline drawing, only update polyline
-            if "stored_polyline" in ctx["prop_id"]:
-                for map_layers in [current_map, current_map2, current_map3]:
-                    map_layers = replace_or_add_map_layer(
-                        map_layers, "Polyline", poly_layer
-                    )
-                return (
-                    f"Surface A: {surfattr_map} - {surfname_map} - {ensemble_map} - {calc_map}",
-                    current_map,
-                    f"Surface B: {surfattr_map2} - {surfname_map2} - {ensemble_map2} - {calc_map2}",
-                    current_map2,
-                    "Surface A-B",
-                    current_map3,
+            poly_layer = create_leaflet_polyline_layer(
+                polyline, name="Polyline", poly_id="random_line"
+            )
+            for map_layers in [current_map, current_map2, current_map3]:
+                map_layers = replace_or_add_map_layer(
+                    map_layers, "Polyline", poly_layer
                 )
+        if xline is not None and source == "xline":
+            xline_layer = create_leaflet_polyline_layer(
+                xline, name="Xline", poly_id="x_line"
+            )
+            for map_layers in [current_map, current_map2, current_map3]:
+                map_layers = replace_or_add_map_layer(map_layers, "Xline", xline_layer)
+        if yline is not None and source == "yline":
+            yline_layer = create_leaflet_polyline_layer(
+                yline, name="Yline", poly_id="y_line"
+            )
+            for map_layers in [current_map, current_map2, current_map3]:
+                map_layers = replace_or_add_map_layer(map_layers, "Yline", yline_layer)
+        # If callback is triggered by polyline drawing, only update polyline
+        if update_poly_only:
+
+            return (
+                f"Surface A: {surfattr_map} - {surfname_map} - {ensemble_map} - {calc_map}",
+                current_map,
+                f"Surface B: {surfattr_map2} - {surfname_map2} - {ensemble_map2} - {calc_map2}",
+                current_map2,
+                "Surface A-B",
+                current_map3,
+            )
+
         if wellname is not None:
             well = well_set_model.get_well(wellname)
             well_layer = make_well_layer(well, name=well.name)
@@ -219,7 +251,14 @@ def update_maps(
             surface_layers.append(poly_layer)
             surface_layers2.append(poly_layer)
             diff_layers.append(poly_layer)
-
+        if xline is not None and source == "xline":
+            surface_layers.append(xline_layer)
+            surface_layers2.append(xline_layer)
+            diff_layers.append(xline_layer)
+        if yline is not None and source == "yline":
+            surface_layers.append(yline_layer)
+            surface_layers2.append(yline_layer)
+            diff_layers.append(yline_layer)
         if well_set_model is not None:
             if options is not None or options2 is not None:
                 if "intersect_well" in options or "intersect_well" in options2:
@@ -282,27 +321,29 @@ def update_maps(
         user clicks a shape in map1"""
         ctx = dash.callback_context.triggered[0]
         if "polyline_points" in ctx["prop_id"]:
-            return "surface", dash.no_update
+            return "polyline", dash.no_update
         if clicked_shape is None:
             raise PreventUpdate
         if clicked_shape.get("id") == "random_line":
-            return "surface", dash.no_update
+            return "polyline", dash.no_update
         if clicked_shape.get("id") in well_set_model.well_names:
             return "well", clicked_shape.get("id")
         raise PreventUpdate
 
 
-def create_leaflet_polyline_layer(positions: List[List[float]]) -> Dict:
+def create_leaflet_polyline_layer(
+    positions: List[List[float]], name: str, poly_id: str
+) -> Dict:
     return {
-        "id": "Polyline",
-        "name": "Polyline",
+        "id": name,
+        "name": name,
         "baseLayer": False,
         "checked": True,
         "action": "update",
         "data": [
             {
                 "type": "polyline",
-                "id": "random_line",
+                "id": poly_id,
                 "positions": positions,
                 "color": "blue",
                 "tooltip": "polyline",

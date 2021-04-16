@@ -182,6 +182,24 @@ class SurfaceSetModel:
             [{"runpath": path} for path in list(self._surface_table["path"])],
         )
 
+    @property
+    def first_surface_geometry(self) -> Dict:
+        surface = xtgeo.surface_from_file(
+            get_stored_surface_path(self._surface_table.iloc[0]["path"])
+        )
+        return {
+            "xmin": surface.xmin,
+            "xmax": surface.xmax,
+            "ymin": surface.ymin,
+            "ymax": surface.ymax,
+            "xori": surface.xori,
+            "yori": surface.yori,
+            "ncol": surface.ncol,
+            "nrow": surface.nrow,
+            "xinc": surface.xinc,
+            "yinc": surface.yinc,
+        }
+
 
 @webvizstore
 def get_stored_surface_path(runpath: Path) -> Path:

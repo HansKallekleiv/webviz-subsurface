@@ -1,6 +1,7 @@
 from typing import List, Callable, Dict, Optional
 
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 import webviz_core_components as wcc
 
@@ -14,6 +15,7 @@ def intersection_data_layout(
     ensembles: List[str],
     use_wells: bool,
     well_names: List[str],
+    surface_geometry: Dict,
     initial_settings: Dict,
 ) -> html.Div:
     """Layout for selecting intersection data"""
@@ -41,6 +43,14 @@ def intersection_data_layout(
                             "well",
                             well_names[0] if use_wells else None,
                         ),
+                    ),
+                    xline_layout(
+                        uuid=get_uuid("intersection_data"),
+                        surface_geometry=surface_geometry,
+                    ),
+                    yline_layout(
+                        uuid=get_uuid("intersection_data"),
+                        surface_geometry=surface_geometry,
                     ),
                 ],
             ),
@@ -112,17 +122,19 @@ def intersection_data_layout(
 
 def source_layout(uuid: str, use_wells: bool = True) -> html.Div:
     options = [
-        {"label": "Intersect polyline from Surface A", "value": "surface"},
+        {"label": "Intersect polyline from Surface A", "value": "polyline"},
+        {"label": "Intersect x-line from Surface A", "value": "xline"},
+        {"label": "Intersect y-line from Surface A", "value": "yline"},
     ]
     if use_wells:
         options.append({"label": "Intersect well", "value": "well"})
     return html.Div(
         style={"display": "none"} if not use_wells else {},
-        children=dcc.RadioItems(
-            labelStyle={"display": "inline-block"},
+        children=dcc.Dropdown(
             id={"id": uuid, "element": "source"},
             options=options,
             value="well" if use_wells else "surface",
+            clearable=False,
             persistence=True,
             persistence_type="session",
         ),
@@ -135,9 +147,8 @@ def well_layout(
     return html.Div(
         style={
             "display": "none",
-        }
-        if value is None
-        else {},
+        },
+        id={"id": uuid, "element": "well-wrapper"},
         children=html.Label(
             children=[
                 html.Span("Well:", style={"font-weight": "bold"}),
@@ -151,6 +162,86 @@ def well_layout(
                 ),
             ]
         ),
+    )
+
+
+def xline_layout(uuid: str, surface_geometry: Dict) -> html.Div:
+    return html.Div(
+        style={
+            "display": "none",
+        },
+        id={"id": uuid, "element": "xline-wrapper"},
+        children=[
+            html.Label("X-Line:"),
+            wcc.FlexBox(
+                style={"fontSize": "0.8em"},
+                children=[
+                    dbc.Input(
+                        id={"id": uuid, "cross-section": "xline", "element": "value"},
+                        style={"flex": 3, "minWidth": "100px"},
+                        type="number",
+                        value=round(surface_geometry["xmin"]),
+                        min=round(surface_geometry["xmin"]),
+                        max=round(surface_geometry["xmax"]),
+                        step=50,
+                        persistence=True,
+                        persistence_type="session",
+                    ),
+                    dbc.Label(style={"flex": 1, "minWidth": "20px"}, children="Step:"),
+                    dbc.Input(
+                        id={"id": uuid, "cross-section": "xline", "element": "step"},
+                        style={"flex": 2, "minWidth": "20px"},
+                        value=50,
+                        type="number",
+                        min=1,
+                        max=round(surface_geometry["xmax"])
+                        - round(surface_geometry["xmin"]),
+                        persistence=True,
+                        persistence_type="session",
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def yline_layout(uuid: str, surface_geometry: Dict) -> html.Div:
+    return html.Div(
+        style={
+            "display": "none",
+        },
+        id={"id": uuid, "element": "yline-wrapper"},
+        children=[
+            html.Label("Y-Line:"),
+            wcc.FlexBox(
+                style={"fontSize": "0.8em"},
+                children=[
+                    dbc.Input(
+                        id={"id": uuid, "cross-section": "yline", "element": "value"},
+                        style={"flex": 3, "minWidth": "100px"},
+                        type="number",
+                        value=round(surface_geometry["ymin"]),
+                        min=round(surface_geometry["ymin"]),
+                        max=round(surface_geometry["ymax"]),
+                        step=50,
+                        persistence=True,
+                        persistence_type="session",
+                    ),
+                    dbc.Label(style={"flex": 1, "minWidth": "20px"}, children="Step:"),
+                    dbc.Input(
+                        id={"id": uuid, "cross-section": "yline", "element": "step"},
+                        style={"flex": 2, "minWidth": "20px"},
+                        value=50,
+                        type="number",
+                        min=1,
+                        max=round(surface_geometry["ymax"])
+                        - round(surface_geometry["ymin"]),
+                        persistence=True,
+                        persistence_type="session",
+                    ),
+                ],
+            ),
+        ],
     )
 
 
