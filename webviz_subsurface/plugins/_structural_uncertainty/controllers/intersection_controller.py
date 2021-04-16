@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Union
 
 import numpy as np
 import pandas as pd
@@ -35,6 +35,8 @@ def update_intersection(
             "value",
         ),
         Input({"id": get_uuid("map"), "element": "stored_polyline"}, "data"),
+        Input({"id": get_uuid("map"), "element": "stored_xline"}, "data"),
+        Input({"id": get_uuid("map"), "element": "stored_yline"}, "data"),
         Input({"id": get_uuid("intersection_data"), "element": "well"}, "value"),
         Input(get_uuid("realization-store"), "data"),
         State(
@@ -58,6 +60,8 @@ def update_intersection(
         _apply_click: Optional[int],
         intersection_source: str,
         polyline: Optional[List],
+        xline: Optional[List],
+        yline: Optional[List],
         wellname: str,
         realizations: List[int],
         surfaceattribute: str,
@@ -79,12 +83,27 @@ def update_intersection(
         if any(val is None for val in [distance, nextend]):
             raise PreventUpdate
         traces = []
-        if intersection_source == "surface":
+
+        if intersection_source == "polyline":
 
             if polyline is None:
                 return []
             fence_spec = get_fencespec_from_polyline(
                 polyline, distance=distance, atleast=5, nextend=nextend / distance
+            )
+        elif intersection_source == "xline":
+
+            if xline is None:
+                return []
+            fence_spec = get_fencespec_from_polyline(
+                xline, distance=distance, atleast=5, nextend=nextend / distance
+            )
+        elif intersection_source == "yline":
+
+            if yline is None:
+                return []
+            fence_spec = get_fencespec_from_polyline(
+                yline, distance=distance, atleast=5, nextend=nextend / distance
             )
         else:
             fence_spec = well_set_model.get_fence(
@@ -93,6 +112,7 @@ def update_intersection(
                 atleast=5,
                 nextend=nextend / distance,
             )
+
         realizations = [int(real) for real in realizations]
         for ensemble in ensembles:
             surfset = surface_set_models[ensemble]
@@ -199,8 +219,12 @@ def update_intersection(
 
         # Update title to reflect source of cross-section calculation
         annotation_title = ["A", "A'"]
-        if intersection_source == "surface":
-            layout.update({"title": "Intersection along polyline shown in Surface A"})
+        if intersection_source in ["polyline", "xline", "yline"]:
+            layout.update(
+                {
+                    "title": f"Intersection along {intersection_source} shown in Surface A"
+                }
+            )
             layout.get("xaxis", {}).update({"autorange": True})
             annotation_title = ["B", "B'"]
         if intersection_source == "well":
@@ -232,7 +256,7 @@ def update_intersection(
             layout.update(initial_layout)
 
         # Return emptly plot layout if surface is source but no polyline is drawn
-        if intersection_source == "surface" and polyline is None:
+        if intersection_source == "polyline" and polyline is None:
             layout.update(
                 {
                     "title": "Draw a random line from the toolbar on Surface A",
@@ -245,10 +269,7 @@ def update_intersection(
             if "uirevision" in ui_options:
                 layout.update({"uirevision": "keep"})
 
-            if (
-                "auto_yrange_polyline" in ui_options
-                and intersection_source == "surface"
-            ):
+            if "auto_yrange_polyline" in ui_options and intersection_source != "well":
                 layout.get("yaxis", {}).update({"autorange": "reversed"})
                 if layout.get("yaxis", {}).get("range"):
                     del layout["yaxis"]["range"]
@@ -268,7 +289,7 @@ def update_intersection(
 
 
 def get_fencespec_from_polyline(
-    coords: List, distance: float, atleast: int, nextend: int
+    coords: List, distance: float, atleast: int, nextend: Union[float, int]
 ) -> np.ndarray:
     """Create a fence specification from polyline coordinates"""
     poly = xtgeo.Polygons()

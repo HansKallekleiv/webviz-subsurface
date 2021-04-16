@@ -32,6 +32,7 @@ from .controllers import (
     update_maps,
     update_realizations,
     update_uncertainty_table,
+    update_intersection_source,
 )
 
 from ._tour_steps import generate_tour_steps
@@ -257,7 +258,9 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
             uuid=self.uuid("colorpicker"),
             dframe=pd.DataFrame(self._surfacecolors),
         )
-
+        self.first_surface_geometry = self._surface_ensemble_set_model[
+            self.ensembles[0]
+        ].first_surface_geometry
         self.set_callbacks(app)
 
     @property
@@ -300,6 +303,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                                     well_names=self._well_set_model.well_names
                                                     if self._well_set_model
                                                     else [],
+                                                    surface_geometry=self.first_surface_geometry,
                                                     initial_settings=self._initial_settings.get(
                                                         "intersection_data", {}
                                                     ),
@@ -444,6 +448,9 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
             get_uuid=self.uuid,
             surface_set_models=self._surface_ensemble_set_model,
             well_set_model=self._well_set_model,
+        )
+        update_intersection_source(
+            app=app, get_uuid=self.uuid, surface_geometry=self.first_surface_geometry
         )
 
     def add_webvizstore(self) -> List[Tuple[Callable, list]]:

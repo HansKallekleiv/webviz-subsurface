@@ -5,7 +5,9 @@ import dash_html_components as html
 
 
 def clientside_stores(
-    get_uuid: Callable, initial_settings: Dict, realizations: List[Union[str, int]]
+    get_uuid: Callable,
+    initial_settings: Dict,
+    realizations: List[Union[str, int]],
 ) -> html.Div:
     """Contains the clientside stores"""
     return html.Div(
@@ -25,6 +27,14 @@ def clientside_stores(
             ),
             dcc.Store(
                 id={"id": get_uuid("map"), "element": "stored_polyline"},
+                storage_type="session",
+            ),
+            dcc.Store(
+                id={"id": get_uuid("map"), "element": "stored_xline"},
+                storage_type="session",
+            ),
+            dcc.Store(
+                id={"id": get_uuid("map"), "element": "stored_yline"},
                 storage_type="session",
             ),
             dcc.Store(
