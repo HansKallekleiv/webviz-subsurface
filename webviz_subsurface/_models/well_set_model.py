@@ -84,9 +84,19 @@ class WellSetModel:
         nextend: int = 2,
     ) -> np.ndarray:
         """Creates a fence specification from a well"""
-        poly = self.wells[well_name].get_fence_polyline(nextend=0, asnumpy=False)
+        # Extend well fence if well is vertical
+        if self._is_vertical(well_name):
+            poly = self.wells[well_name].get_fence_polyline(nextend=2, asnumpy=False)
+        else:
+            poly = self.wells[well_name].get_fence_polyline(asnumpy=False)
         return poly.get_fence(
             distance=distance, atleast=atleast, nextend=nextend, asnumpy=True
+        )
+
+    def _is_vertical(self, well_name: str) -> bool:
+        return (
+            self.wells[well_name].dataframe["X_UTME"].nunique() == 1
+            and self.wells[well_name].dataframe["Y_UTMN"].nunique() == 1
         )
 
     @property
