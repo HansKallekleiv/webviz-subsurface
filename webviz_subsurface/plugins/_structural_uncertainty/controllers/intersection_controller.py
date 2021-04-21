@@ -156,6 +156,11 @@ def update_intersection(
                             traces.append(trace)
                             showlegend = False
                     if "Realizations" in statistics:
+                        trace_type = (
+                            "scattergl"
+                            if (len(realizations) * len(ensembles)) > 20
+                            else "scatter"
+                        )
                         for real in realizations:
                             trace = get_plotly_trace_realization_surface(
                                 surfaceset=surfset,
@@ -165,6 +170,7 @@ def update_intersection(
                                 attribute=surfaceattribute,
                                 realization=real,
                                 color=color,
+                                trace_type=trace_type,
                                 showlegend=showlegend,
                             )
                             traces.append(trace)

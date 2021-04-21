@@ -160,6 +160,7 @@ def get_plotly_trace_realization_surface(
     realization: int,
     showlegend: bool = False,
     sampling: Optional[str] = "billinear",
+    trace_type="scatter",
     color: str = "red",
 ) -> Dict[str, Any]:
     """Returns a plotly line trace for a surface"""
@@ -171,6 +172,7 @@ def get_plotly_trace_realization_surface(
         "x": fencexy[:, 0],
         "y": fencexy[:, 1],
         "name": legendname,
+        "type": trace_type,
         "text": f"{legendname} realization: {realization}",
         "showlegend": showlegend,
         "hoverinfo": "y+x+text",
