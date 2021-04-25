@@ -61,7 +61,7 @@ def test_default_configuration(dash_duo, app, testdata_folder) -> None:
     app.layout = plugin.layout
     dash_duo.start_server(app)
 
-    intersection_data_id = plugin.uuid("intersection_data")
+    intersection_data_id = plugin.uuid("intersection-data")
     modal_id = plugin.uuid("modal")
     # Check some initialization
     # Check dropdowns
@@ -225,7 +225,7 @@ def test_full_configuration(dash_duo, app, testdata_folder) -> None:
 
     dash_duo.start_server(app)
 
-    intersection_data_id = plugin.uuid("intersection_data")
+    intersection_data_id = plugin.uuid("intersection-data")
 
     # Check some initialization
     # Check dropdowns
