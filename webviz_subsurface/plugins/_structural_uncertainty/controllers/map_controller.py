@@ -1,4 +1,4 @@
-from typing import Dict, List, Callable, Tuple, Optional, Union
+from typing import Dict, List, Callable, Tuple, Optional, Union, Any
 import warnings
 
 import xtgeo
@@ -381,7 +381,9 @@ def replace_or_add_map_layer(
     return layers
 
 
-def check_if_update_needed(ctx: str, get_uuid: Callable, current_map, settings):
+def check_if_update_needed(
+    ctx: Dict, get_uuid: Callable, current_map: List[Dict], settings: List[str]
+) -> Dict[str, Any]:
 
     update_controls = {}
     for map_id in ["map", "map2"]:
@@ -422,12 +424,12 @@ def check_if_update_needed(ctx: str, get_uuid: Callable, current_map, settings):
 
 
 def create_or_return_base_layer(
-    update_controls,
-    surface,
-    current_map,
+    update_controls: Dict,
+    surface: xtgeo.RegularSurface,
+    current_map: List[Dict],
     shade_map: Dict[str, bool],
     map_id: str,
-):
+) -> List[Dict]:
 
     surface_layers = []
     if update_controls[map_id]["options_clicked"]:

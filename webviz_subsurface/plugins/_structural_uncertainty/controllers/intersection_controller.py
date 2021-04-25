@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Callable, Union
+from typing import Dict, List, Optional, Callable, Union, Tuple
 import json
 import numpy as np
 import pandas as pd
@@ -347,7 +347,7 @@ def update_intersection(
         zmax: Optional[float],
         zrange_locks_options: List[Dict],
         zrange_locks_value: str,
-    ):
+    ) -> Tuple[List[Dict], str, Optional[float], Optional[float]]:
         ctx = dash.callback_context.triggered[0]
         if ctx["prop_id"] == ".":
             raise PreventUpdate
@@ -404,8 +404,8 @@ def update_intersection(
         resolution: float,
         extension: int,
         color_list: List[str],
-        previous_settings: List[str],
-    ) -> List:
+        previous_settings: Dict,
+    ) -> Tuple[Dict, Dict]:
 
         ctx = dash.callback_context.triggered[0]
 

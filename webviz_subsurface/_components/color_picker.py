@@ -128,7 +128,7 @@ class ColorPicker:
         )
 
     @property
-    def data_style_in_table(self):
+    def data_style_in_table(self) -> List[Dict[str, str]]:
         style_data = [
             {
                 "if": {"row_index": idx, "column_id": "COLOR"},

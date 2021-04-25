@@ -28,7 +28,7 @@ def update_uncertainty_table(
             "n_clicks",
         ),
     )
-    def _display_uncertainty_table(n_clicks: Optional[int]) -> Tuple[Dict, str]:
+    def _display_uncertainty_table(n_clicks: Optional[int]) -> Tuple[Dict, Dict, str]:
         if not n_clicks:
             raise PreventUpdate
         if n_clicks % 2 == 0:
