@@ -190,15 +190,13 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
             raise KeyError(
                 "Well is specified in initial settings but no well data is found!"
             )
-        self._surface_attributes = surface_attributes
+        self._surf_attrs = surface_attributes
         self._ensemble_paths = {
             ens: webviz_settings.shared_settings["scratch_ensembles"][ens]
             for ens in ensembles
         }
         surface_table = find_surfaces(self._ensemble_paths)
-        surface_table = surface_table[
-            surface_table["attribute"].isin(self._surface_attributes)
-        ]
+        surface_table = surface_table[surface_table["attribute"].isin(self._surf_attrs)]
         if surface_table.empty:
             raise ValueError("No surfaces found with the given attributes")
         self._surfacenames = list(surface_table["name"].unique())
@@ -296,7 +294,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                                 ),
                                                 intersection_data_layout(
                                                     get_uuid=self.uuid,
-                                                    surface_attributes=self._surface_attributes,
+                                                    surface_attributes=self._surf_attrs,
                                                     surface_names=self._surfacenames,
                                                     ensembles=self.ensembles,
                                                     use_wells=self._use_wells,
@@ -328,7 +326,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
                                                             uuid=self.uuid(
                                                                 "map-settings"
                                                             ),
-                                                            surface_attributes=self._surface_attributes,
+                                                            surface_attributes=self._surf_attrs,
                                                             surface_names=self._surfacenames,
                                                             ensembles=self.ensembles,
                                                             realizations=self._realizations,

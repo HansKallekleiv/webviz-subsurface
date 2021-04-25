@@ -91,47 +91,41 @@ def update_uncertainty_table(
                         surface_picks = well.get_surface_picks(surface)
                         if surface_picks is None:
                             continue
-                        else:
+                        surface_df = surface_picks.dataframe.drop(
+                            columns=["X_UTME", "Y_UTMN", "DIRECTION", "WELLNAME"]
+                        )
+                        tvds = (
+                            surface_df["Z_TVDSS"]
+                            .apply(lambda x: np.round(x, 1))
+                            .tolist()
+                        )
 
-                            surface_df = surface_picks.dataframe.drop(
-                                columns=["X_UTME", "Y_UTMN", "DIRECTION", "WELLNAME"]
-                            )
-                            tvds = (
-                                surface_df["Z_TVDSS"]
-                                .apply(lambda x: np.round(x, 1))
-                                .tolist()
-                            )
+                        surface_df.rename({well.mdlogname: "MD"}, axis=1, inplace=True)
+                        # Do not calculate MD if Well tvd is truncated
+                        mds = (
+                            surface_df["MD"].apply(lambda x: np.round(x, 1)).tolist()
+                            if not well_set_model.is_truncated
+                            else []
+                        )
 
-                            surface_df.rename(
-                                {well.mdlogname: "MD"}, axis=1, inplace=True
-                            )
-                            # Do not calculate MD if Well tvd is truncated
-                            mds = (
-                                surface_df["MD"]
-                                .apply(lambda x: np.round(x, 1))
-                                .tolist()
-                                if not well_set_model.is_truncated
-                                else []
-                            )
+                        surface_df["Pick no"] = surface_df.index + 1
+                        pick_nos = surface_df["Pick no"].tolist()
 
-                            surface_df["Pick no"] = surface_df.index + 1
-                            pick_nos = surface_df["Pick no"].tolist()
+                        data = {
+                            "TVD": " / ".join(str(x) for x in tvds),
+                            "MD": " / ".join(str(x) for x in mds),
+                            "Pick no": " / ".join(str(x) for x in pick_nos),
+                            "Surface name": surfacename,
+                            "Calculation": calculation,
+                            "Ensemble": ensemble,
+                        }
+                        surface_df = pd.DataFrame([data])
+                        dframes.append(surface_df)
 
-                            data = {
-                                "TVD": " / ".join(str(x) for x in tvds),
-                                "MD": " / ".join(str(x) for x in mds),
-                                "Pick no": " / ".join(str(x) for x in pick_nos),
-                                "Surface name": surfacename,
-                                "Calculation": calculation,
-                                "Ensemble": ensemble,
-                            }
-                            surface_df = pd.DataFrame([data])
-                            dframes.append(surface_df)
-
-        if dframes:
-            dframe = pd.concat(dframes)
-        else:
-            dframe = pd.DataFrame(
+        dframe = (
+            pd.concat(dframes)
+            if dframes
+            else pd.DataFrame(
                 [
                     {
                         "TVD": "-",
@@ -143,4 +137,5 @@ def update_uncertainty_table(
                     }
                 ]
             )
+        )
         return dframe.to_dict("records"), f"Statistics for well {wellname}"
