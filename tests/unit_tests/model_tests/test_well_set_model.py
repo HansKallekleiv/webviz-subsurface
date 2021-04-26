@@ -58,7 +58,7 @@ def test_get_fence(testdata_folder: Path) -> None:
     assert isinstance(fence, np.ndarray)
     # Test horizontal length
     assert int(fence[:, 3].min()) == -40
-    assert int(fence[:, 3].max()) == 2710
+    assert int(fence[:, 3].max()) == 2792
     # Test tvd
-    assert int(fence[:, 2].min()) == 1
+    assert int(fence[:, 2].min()) == int(0.99)
     assert int(fence[:, 2].max()) == 1643

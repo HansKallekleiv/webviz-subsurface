@@ -75,8 +75,8 @@ def test_default_configuration(dash_duo, app, testdata_folder) -> None:
 
     # Check Selects
     for element, return_val in zip(
-        ["ensembles", "surface_names"],
-        [["iter-0"], ["topupperreek", "topmidreek", "toplowerreek", "baselowerreek"]],
+        ["surface_names"],
+        [["topupperreek", "topmidreek", "toplowerreek", "baselowerreek"]],
     ):
         uuid = stringify_object_id(
             uuid={"element": element, "id": intersection_data_id}
@@ -235,7 +235,7 @@ def test_full_configuration(dash_duo, app, testdata_folder) -> None:
         uuid = stringify_object_id(
             uuid={"element": element, "id": intersection_data_id}
         )
-        assert dash_duo.wait_for_element(f"#\\{uuid} .Select-value").text == return_val
+        assert dash_duo.wait_for_text_to_equal(f"#\\{uuid} .Select-value", return_val)
 
     # Wait for the callbacks to execute
     dash_duo.wait_for_text_to_equal(
@@ -264,7 +264,9 @@ def test_full_configuration(dash_duo, app, testdata_folder) -> None:
     apply_btn.click()
 
     dash_duo.wait_for_text_to_equal(
-        f'#{plugin.uuid("plot_is_updated")}', "Intersection along well: OP_1"
+        f'#{plugin.uuid("plot_is_updated")}',
+        "Intersection along well: OP_6",
+        timeout=100,
     )
     graph_layout = dash_duo.get_session_storage(
         plugin.uuid("intersection-graph-layout")
