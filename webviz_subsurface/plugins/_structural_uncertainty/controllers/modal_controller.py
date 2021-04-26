@@ -24,7 +24,7 @@ def open_modals(
         ),
     )
     def _toggle_modal_graph_settings(n_open: int, is_open: bool) -> Optional[bool]:
-        """ Open or close graph settings modal button """
+        """Open or close graph settings modal button"""
         if n_open:
             return not is_open
         raise PreventUpdate

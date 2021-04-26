@@ -224,7 +224,7 @@ class ColorPicker:
             cell: Optional[Dict],
             current_color_store: List[str],
         ) -> List[str]:
-            """ Update list of stored colors"""
+            """Update list of stored colors"""
             if not cell or not color:
                 raise PreventUpdate
             row_no = cell["row"]
