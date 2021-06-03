@@ -1,0 +1,259 @@
+from typing import Dict, List
+import pandas as pd
+
+
+class TornadoData:
+    def __init__(
+        self,
+        dframe: pd.DataFrame,
+        reference: str = "rms_seed",
+        cutbyref: bool = False,
+        scale: str = "Percentage",
+    ) -> None:
+        self._dframe = dframe
+        self._reference = reference
+        self._scale = scale
+        self._validate_input()
+        self._sens_average_dframe = self._calculate_sensitivity_averages()
+        self.tornadotable = self._calculate_tornado_low_high_dataframe()
+        if cutbyref:
+            self._cut_sensitivities_by_ref()
+        self._sort_sensitivities_by_max()
+
+    def _validate_input(self) -> None:
+        for col in ["REAL", "SENSNAME", "SENSCASE", "SENSTYPE", "VALUE"]:
+            if col not in self._dframe:
+                raise KeyError(f"Tornado input is missing {col}")
+
+        if list(self._dframe["SENSCASE"].unique()) == [None]:
+            raise KeyError(f"No sensitivities found in tornado input")
+
+        for sens_name, sens_name_df in self._dframe.groupby("SENSNAME"):
+            if sens_name_df["SENSTYPE"].all() not in ["scalar", "mc"]:
+                raise ValueError(
+                    f"Sensitivity {sens_name} is not of type 'mc' or 'scalar"
+                )
+
+    @property
+    def scale(self) -> str:
+        return self._scale
+
+    @property
+    def reference_average(self) -> float:
+        # Calculate average response value for reference sensitivity
+        return self._dframe.loc[self._dframe["SENSNAME"] == self._reference][
+            "VALUE"
+        ].mean()
+
+    def _scale_to_ref(self, value: float) -> float:
+        value_ref = value - self.reference_average
+        if self.scale == "Percentage":
+            return (
+                (100 * (value_ref / self.reference_average))
+                if self.reference_average != 0
+                else 0
+            )
+        return value_ref
+
+    def _calculate_sensitivity_averages(self) -> pd.DataFrame:
+        avg_per_sensitivity = []
+
+        for sens_name, sens_name_df in self._dframe.groupby(["SENSNAME"]):
+            # Excluding the reference case as well as any cases named `ref`
+            # `ref` is used as `SENSNAME`, typically for a single realization only,
+            # when no seed uncertainty is used
+            if sens_name == "ref":
+                continue
+
+            # If `SENSTYPE` is scalar get the mean for each `SENSCASE`
+            if sens_name_df["SENSTYPE"].all() == "scalar":
+                for sens_case, sens_case_df in sens_name_df.groupby(["SENSCASE"]):
+                    avg_per_sensitivity.append(
+                        {
+                            "sensname": sens_name,
+                            "senscase": sens_case,
+                            "values": sens_case_df["VALUE"].mean(),
+                            "values_ref": self._scale_to_ref(
+                                sens_case_df["VALUE"].mean()
+                            ),
+                            "reals": list(map(int, sens_case_df["REAL"])),
+                        }
+                    )
+            # If `SENSTYPE` is monte carlo get p10, p90
+            elif sens_name_df["SENSTYPE"].all() == "mc":
+
+                # Calculate p90(low) and p10(high)
+                p90 = sens_name_df["VALUE"].quantile(0.10)
+                p10 = sens_name_df["VALUE"].quantile(0.90)
+
+                # Extract list of realizations with values less then reference avg (low)
+                low_reals = list(
+                    map(
+                        int,
+                        sens_name_df.loc[
+                            sens_name_df["VALUE"] <= self.reference_average
+                        ]["REAL"],
+                    )
+                )
+
+                # Extract list of realizations with values higher then reference avg (high)
+                high_reals = list(
+                    map(
+                        int,
+                        sens_name_df.loc[
+                            sens_name_df["VALUE"] > self.reference_average
+                        ]["REAL"],
+                    )
+                )
+
+                avg_per_sensitivity.append(
+                    {
+                        "sensname": sens_name,
+                        "senscase": "P90",
+                        "values": p90,
+                        "values_ref": self._scale_to_ref(p90),
+                        "reals": low_reals,
+                    }
+                )
+                avg_per_sensitivity.append(
+                    {
+                        "sensname": sens_name,
+                        "senscase": "P10",
+                        "values": p10,
+                        "values_ref": self._scale_to_ref(p10),
+                        "reals": high_reals,
+                    }
+                )
+
+        return pd.DataFrame(avg_per_sensitivity)
+
+    def _calculate_tornado_low_high_dataframe(self) -> pd.DataFrame:
+        low_high_per_sensitivity = []
+        for sensname, sens_name_df in self._sens_average_dframe.groupby(["sensname"]):
+            low = sens_name_df.copy().loc[sens_name_df["values_ref"].idxmin()]
+            high = sens_name_df.copy().loc[sens_name_df["values_ref"].idxmax()]
+            if sens_name_df["senscase"].nunique() == 1:
+                # Single case sens, implies low == high, but testing just in case:
+                if low["values_ref"] != high["values_ref"]:
+                    raise ValueError(
+                        "For a single sensitivity case, low and high cases should be equal. Likely bug"
+                    )
+                if low["values_ref"] < 0:
+                    # To avoid warnings for changing values of dataframe slices.
+                    high = high.copy()
+                    high["values_ref"] = 0
+                    high["reals"] = []
+                    high["senscase"] = None
+                    high["values"] = self.reference_average
+                else:
+                    low = (
+                        low.copy()
+                    )  # To avoid warnings for changing values of dataframe slices.
+                    low["values_ref"] = 0
+                    low["reals"] = []
+                    low["senscase"] = None
+                    low["values"] = self.reference_average
+
+            low_high_per_sensitivity.append(
+                {
+                    "low": self.calc_low_x(low["values_ref"], high["values_ref"]),
+                    "low_base": self.calc_low_base(
+                        low["values_ref"], high["values_ref"]
+                    ),
+                    "low_label": low["senscase"],
+                    "low_tooltip": low["values_ref"],
+                    "true_low": low["values"],
+                    "low_reals": low["reals"],
+                    "sensname": sensname,
+                    "high": self.calc_high_x(low["values_ref"], high["values_ref"]),
+                    "high_base": self.calc_high_base(
+                        low["values_ref"], high["values_ref"]
+                    ),
+                    "high_label": high["senscase"],
+                    "high_tooltip": high["values_ref"],
+                    "true_high": high["values"],
+                    "high_reals": high["reals"],
+                }
+            )
+        return pd.DataFrame(low_high_per_sensitivity)
+
+    def _cut_sensitivities_by_ref(self) -> None:
+        """Removes sensitivities smaller than reference sensitivity from table"""
+        if self.tornadotable["sensname"].str.contains(self._reference).any():
+            maskref = self.tornadotable.sensname == self._reference
+            reflow = self.tornadotable[maskref].low.abs()
+            refhigh = self.tornadotable[maskref].high.abs()
+            refmax = max(float(reflow), float(refhigh))
+            self.tornadotable = self.tornadotable.loc[
+                (self.tornadotable["sensname"] == self._reference)
+                | (
+                    (self.tornadotable["low"].abs() >= refmax)
+                    | (self.tornadotable["high"].abs() >= refmax)
+                )
+            ]
+
+    def _sort_sensitivities_by_max(self) -> None:
+        """Sorts table based on max(abs('low', 'high'))"""
+        self.tornadotable["max"] = (
+            self.tornadotable[["low", "high"]]
+            .apply(lambda x: max(x.min(), x.max(), key=abs), axis=1)  # type: ignore
+            .abs()
+        )
+        self.tornadotable.sort_values("max", ascending=True, inplace=True)
+        self.tornadotable.drop(["max"], axis=1, inplace=True)
+
+    @property
+    def low_high_realizations_list(self) -> Dict:
+        return {
+            sensname: {
+                "real_low": sens_name_df["low_reals"].tolist()[0],
+                "real_high": sens_name_df["high_reals"].tolist()[0],
+            }
+            for sensname, sens_name_df in self.tornadotable.groupby(["sensname"])
+        }
+
+    @staticmethod
+    def calc_low_base(low: float, high: float) -> float:
+        """
+        From the low and high value of a parameter,
+        calculates the base (starting x value) of the
+        bar visualizing low values.
+        """
+        if low < 0:
+            return min(0, high)
+        return low
+
+    @staticmethod
+    def calc_high_base(low: float, high: float) -> float:
+        """
+        From the low and high value of a parameter,
+        calculates the base (starting x value) of the bar
+        visualizing high values.
+        """
+        if high > 0:
+            return max(0, low)
+        return high
+
+    @staticmethod
+    def calc_high_x(low: float, high: float) -> float:
+        """
+        From the low and high value of a parameter,
+        calculates the x-value (length of bar) of the bar
+        visualizing high values.
+        """
+        if high > 0:
+            base = max(0, low)
+            return high - base
+        return 0.0
+
+    @staticmethod
+    def calc_low_x(low: float, high: float) -> float:
+        """
+        From the low and high value of a parameter,
+        calculates the x-value (length of bar) of the bar
+        visualizing low values.
+        """
+        if low < 0:
+            base = min(0, high)
+            return low - base
+        return 0.0
