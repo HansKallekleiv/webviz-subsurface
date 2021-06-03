@@ -16,6 +16,7 @@ from webviz_config import WebvizSettings
 from webviz_subsurface._utils.formatting import printable_int_list
 from ._tornado_data import TornadoData
 from ._tornado_bar_chart import TornadoBarChart
+from ._tornado_table import TornadoTable
 
 
 class TornadoWidget:
@@ -59,9 +60,11 @@ class TornadoWidget:
         webviz_settings: WebvizSettings,
         realizations: pd.DataFrame,
         reference: str = "rms_seed",
+        height: str = "90vh",
         allow_click: bool = False,
     ):
         self.realizations = realizations
+        self.height = "90vh"
         self.sensnames = list(self.realizations["SENSNAME"].unique())
         if self.sensnames == [None]:
             raise KeyError(
@@ -140,227 +143,216 @@ class TornadoWidget:
     @property
     def layout(self) -> html.Div:
         return html.Div(
+            style={"marginLeft": "10px", "height": "90vh"},
             children=[
                 html.Div(
-                    style={"marginLeft": "10px"},
                     children=[
-                        html.Div(
+                        html.Label(
+                            "Tornado Plot",
+                            style={
+                                "textAlign": "center",
+                                "font-weight": "bold",
+                            },
+                        ),
+                        dcc.RadioItems(
+                            id=self.ids("plot-or-table"),
+                            options=[
+                                {"label": "Show bars", "value": "bars"},
+                                {
+                                    "label": "Show table",
+                                    "value": "table",
+                                },
+                            ],
+                            value="bars",
+                        ),
+                        html.Details(
+                            open=False,
                             children=[
-                                html.Label(
-                                    "Tornado Plot",
-                                    style={
-                                        "textAlign": "center",
-                                        "font-weight": "bold",
-                                    },
-                                ),
-                                dcc.RadioItems(
-                                    id=self.ids("plot-or-table"),
-                                    options=[
-                                        {"label": "Show bars", "value": "bars"},
-                                        {
-                                            "label": "Show table",
-                                            "value": "table",
-                                        },
-                                    ],
-                                    value="bars",
-                                ),
-                                html.Details(
-                                    open=False,
+                                html.Summary("Settings"),
+                                html.Div(
+                                    style={"maxWidth": "600px"},
                                     children=[
-                                        html.Summary("Settings"),
-                                        html.Div(
-                                            style={"maxWidth": "600px"},
+                                        wcc.FlexBox(
+                                            # style=self.set_grid_layout("1fr 1fr"),
                                             children=[
-                                                wcc.FlexBox(
-                                                    # style=self.set_grid_layout("1fr 1fr"),
-                                                    children=[
-                                                        html.Div(
-                                                            style={
-                                                                "minWidth": "100px",
-                                                                "flex": 1,
-                                                            },
-                                                            children=html.Label(
-                                                                "Reference:"
-                                                            ),
-                                                        ),
-                                                        html.Div(
-                                                            style={
-                                                                "minWidth": "100px",
-                                                                "flex": 1,
-                                                            },
-                                                            children=html.Label(
-                                                                "Scale:"
-                                                            ),
-                                                        ),
-                                                        html.Div(
-                                                            style={
-                                                                "minWidth": "100px",
-                                                                "flex": 1,
-                                                            },
-                                                            children=html.Label(
-                                                                "Filter sensitivities:"
-                                                            ),
-                                                        ),
-                                                    ],
+                                                html.Div(
+                                                    style={
+                                                        "minWidth": "100px",
+                                                        "flex": 1,
+                                                    },
+                                                    children=html.Label("Reference:"),
                                                 ),
-                                                wcc.FlexBox(
-                                                    children=[
-                                                        html.Div(
-                                                            style={
-                                                                "minWidth": "100px",
-                                                                "flex": 1,
-                                                            },
-                                                            children=dcc.Dropdown(
+                                                html.Div(
+                                                    style={
+                                                        "minWidth": "100px",
+                                                        "flex": 1,
+                                                    },
+                                                    children=html.Label("Scale:"),
+                                                ),
+                                                html.Div(
+                                                    style={
+                                                        "minWidth": "100px",
+                                                        "flex": 1,
+                                                    },
+                                                    children=html.Label(
+                                                        "Filter sensitivities:"
+                                                    ),
+                                                ),
+                                            ],
+                                        ),
+                                        wcc.FlexBox(
+                                            children=[
+                                                html.Div(
+                                                    style={
+                                                        "minWidth": "100px",
+                                                        "flex": 1,
+                                                    },
+                                                    children=dcc.Dropdown(
+                                                        id=self.ids("reference"),
+                                                        options=[
+                                                            {
+                                                                "label": r,
+                                                                "value": r,
+                                                            }
+                                                            for r in self.sensnames
+                                                        ],
+                                                        value=self.initial_reference,
+                                                        clearable=False,
+                                                        persistence=True,
+                                                        persistence_type="session",
+                                                    ),
+                                                ),
+                                                html.Div(
+                                                    style={
+                                                        "minWidth": "100px",
+                                                        "flex": 1,
+                                                    },
+                                                    children=dcc.Dropdown(
+                                                        id=self.ids("scale"),
+                                                        options=[
+                                                            {
+                                                                "label": r,
+                                                                "value": r,
+                                                            }
+                                                            for r in [
+                                                                "Percentage",
+                                                                "Absolute",
+                                                            ]
+                                                        ],
+                                                        value="Percentage",
+                                                        clearable=False,
+                                                        persistence=True,
+                                                        persistence_type="session",
+                                                    ),
+                                                ),
+                                                html.Div(
+                                                    style={
+                                                        "minWidth": "100px",
+                                                        "flex": 1,
+                                                    },
+                                                    children=html.Details(
+                                                        open=False,
+                                                        children=[
+                                                            html.Summary("Filter"),
+                                                            wcc.Select(
                                                                 id=self.ids(
-                                                                    "reference"
+                                                                    "sens_filter"
                                                                 ),
                                                                 options=[
                                                                     {
-                                                                        "label": r,
-                                                                        "value": r,
+                                                                        "label": i,
+                                                                        "value": i,
                                                                     }
-                                                                    for r in self.sensnames
+                                                                    for i in self.sensnames
                                                                 ],
-                                                                value=self.initial_reference,
-                                                                clearable=False,
+                                                                value=self.sensnames,
+                                                                multi=True,
+                                                                size=min(
+                                                                    10,
+                                                                    len(self.sensnames),
+                                                                ),
                                                                 persistence=True,
                                                                 persistence_type="session",
                                                             ),
-                                                        ),
-                                                        html.Div(
-                                                            style={
-                                                                "minWidth": "100px",
-                                                                "flex": 1,
-                                                            },
-                                                            children=dcc.Dropdown(
-                                                                id=self.ids("scale"),
-                                                                options=[
-                                                                    {
-                                                                        "label": r,
-                                                                        "value": r,
-                                                                    }
-                                                                    for r in [
-                                                                        "Percentage",
-                                                                        "Absolute",
-                                                                    ]
-                                                                ],
-                                                                value="Percentage",
-                                                                clearable=False,
-                                                                persistence=True,
-                                                                persistence_type="session",
-                                                            ),
-                                                        ),
-                                                        html.Div(
-                                                            style={
-                                                                "minWidth": "100px",
-                                                                "flex": 1,
-                                                            },
-                                                            children=html.Details(
-                                                                open=False,
-                                                                children=[
-                                                                    html.Summary(
-                                                                        "Filter"
-                                                                    ),
-                                                                    wcc.Select(
-                                                                        id=self.ids(
-                                                                            "sens_filter"
-                                                                        ),
-                                                                        options=[
-                                                                            {
-                                                                                "label": i,
-                                                                                "value": i,
-                                                                            }
-                                                                            for i in self.sensnames
-                                                                        ],
-                                                                        value=self.sensnames,
-                                                                        multi=True,
-                                                                        size=min(
-                                                                            10,
-                                                                            len(
-                                                                                self.sensnames
-                                                                            ),
-                                                                        ),
-                                                                        persistence=True,
-                                                                        persistence_type="session",
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                        ),
-                                                    ],
+                                                        ],
+                                                    ),
                                                 ),
                                             ],
                                         ),
-                                        dcc.Checklist(
-                                            id=self.ids("cut-by-ref"),
-                                            options=[
-                                                {
-                                                    "label": "Cut by reference",
-                                                    "value": "Cut by reference",
-                                                },
-                                            ],
-                                            value=[],
-                                            persistence=True,
-                                            persistence_type="session",
-                                        ),
-                                        html.Button(
-                                            style={
-                                                "position": "relative",
-                                                "top": "-50%",
-                                                "fontSize": "10px",
-                                            },
-                                            id=self.ids("reset"),
-                                            children="Clear selected",
-                                        ),
                                     ],
+                                ),
+                                dcc.Checklist(
+                                    id=self.ids("cut-by-ref"),
+                                    options=[
+                                        {
+                                            "label": "Cut by reference",
+                                            "value": "Cut by reference",
+                                        },
+                                    ],
+                                    value=[],
+                                    persistence=True,
+                                    persistence_type="session",
+                                ),
+                                html.Button(
+                                    style={
+                                        "position": "relative",
+                                        "top": "-50%",
+                                        "fontSize": "10px",
+                                    },
+                                    id=self.ids("reset"),
+                                    children="Clear selected",
                                 ),
                             ],
                         ),
-                        html.Div(
-                            style={"minHeight": "500px"},
-                            children=wcc.Graph(
-                                id=self.ids("tornado-graph"),
-                                config={"displayModeBar": False},
-                            ),
-                        ),
-                        html.Div(
-                            children=dash_table.DataTable(
-                                id=self.ids("tornado-table"),
-                                columns=[
-                                    {
-                                        "name": col,
-                                        "id": col,
-                                        "type": "numeric",
-                                        "format": {
-                                            "locale": {"symbol": ["", ""]},
-                                            "specifier": "$.4s",
-                                        },
-                                    }
-                                    for col in [
-                                        "Sensitivity",
-                                        "Low Case",
-                                        "High Case",
-                                        "Delta low",
-                                        "Delta high",
-                                        "True low",
-                                        "True high",
-                                        "Low reals",
-                                        "High reals",
-                                    ]
-                                ],
-                                data=[],
-                            )
-                        ),
-                        dcc.Store(id=self.ids("storage"), storage_type="session"),
-                        dcc.Store(id=self.ids("click-store"), storage_type="session"),
-                        dcc.Store(
-                            id=self.ids("high-low-storage"), storage_type="session"
-                        ),
                     ],
-                )
+                ),
+                html.Div(
+                    id=self.ids("graph-wrapper"),
+                    children=wcc.Graph(
+                        id=self.ids("tornado-graph"),
+                        style={"height": "70vh"},
+                        config={"displayModeBar": False},
+                    ),
+                ),
+                html.Div(
+                    id=self.ids("table-wrapper"),
+                    style={"display": "none"},
+                    children=dash_table.DataTable(
+                        id=self.ids("tornado-table"),
+                        columns=[
+                            {
+                                "name": col,
+                                "id": col,
+                                "type": "numeric",
+                                "format": {
+                                    "locale": {"symbol": ["", ""]},
+                                    "specifier": "$.4s",
+                                },
+                            }
+                            for col in TornadoTable.COLUMNS
+                        ],
+                        data=[],
+                    ),
+                ),
+                dcc.Store(id=self.ids("storage"), storage_type="session"),
+                dcc.Store(id=self.ids("click-store"), storage_type="session"),
+                dcc.Store(id=self.ids("high-low-storage"), storage_type="session"),
             ],
         )
 
     def set_callbacks(self, app: dash.Dash) -> None:
+        @app.callback(
+            Output(self.ids("graph-wrapper"), "style"),
+            Output(self.ids("table-wrapper"), "style"),
+            Input(self.ids("plot-or-table"), "value"),
+        )
+        def _set_visualization(viz_type: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+            if viz_type == "bars":
+                return {"display": "inline"}, {"display": "none"}
+            if viz_type == "table":
+                return {"display": "none"}, {"display": "inline"}
+            raise PreventUpdate
+
         @app.callback(
             [
                 Output(self.ids("tornado-graph"), "figure"),
@@ -395,10 +387,18 @@ class TornadoWidget:
             ]
             design_and_responses = pd.merge(values, realizations, on="REAL")
             if sens_filter is not None:
-                design_and_responses.loc[
+                if reference not in sens_filter:
+                    sens_filter.append(reference)
+                design_and_responses = design_and_responses.loc[
                     design_and_responses["SENSNAME"].isin(sens_filter)
                 ]
-            tornado_data = TornadoData(dframe=design_and_responses)
+
+            tornado_data = TornadoData(
+                dframe=design_and_responses,
+                reference=reference,
+                scale=scale,
+                cutbyref="Cut by reference" in cutbyref,
+            )
             tornado_figure = TornadoBarChart(
                 tornado_data=tornado_data,
                 plotly_theme=self.plotly_theme,
@@ -407,38 +407,10 @@ class TornadoWidget:
                 spaced=data.get("spaced", True),
                 locked_si_prefix=data.get("locked_si_prefix", None),
             )
-
-            tabledf = tornado_data.tornadotable.copy()
-
-            tabledf["Delta low"] = (
-                tabledf["true_low"].astype("float") - tornado_data.reference_average
-            )
-            tabledf["Delta high"] = (
-                tabledf["true_high"].astype("float") - tornado_data.reference_average
-            )
-            tabledf["low_reals"] = tabledf["low_reals"].apply(
-                lambda x: printable_int_list(x)
-            )
-            tabledf["high_reals"] = tabledf["high_reals"].apply(
-                lambda x: printable_int_list(x)
-            )
-
-            tabledf.rename(
-                columns={
-                    "sensname": "Sensitivity",
-                    "low": "Low Case",
-                    "high": "High Case",
-                    "true_low": "True low",
-                    "true_high": "True high",
-                    "low_reals": "Low reals",
-                    "high_reals": "High reals",
-                },
-                inplace=True,
-            )
-
+            tornado_table = TornadoTable(tornado_data=tornado_data)
             return (
                 tornado_figure.figure,
-                tabledf.iloc[::-1].to_dict("records"),
+                tornado_table.as_plotly_table,
                 tornado_data.low_high_realizations_list,
             )
 
