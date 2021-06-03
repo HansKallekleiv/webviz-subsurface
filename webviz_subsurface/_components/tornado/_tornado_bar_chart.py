@@ -57,7 +57,7 @@ class TornadoBarChart:
                         self._tornadotable["low_reals"],
                     )
                 ],
-                textposition="inside",
+                textposition="auto",
                 insidetextanchor="middle",
                 hoverinfo="skip",
                 orientation="h",
@@ -84,7 +84,7 @@ class TornadoBarChart:
                         self._tornadotable["high_reals"],
                     )
                 ],
-                textposition="inside",
+                textposition="auto",
                 insidetextanchor="middle",
                 hoverinfo="skip",
                 orientation="h",
@@ -98,8 +98,8 @@ class TornadoBarChart:
         _layout.update(self._plotly_theme["layout"])
         _layout.update(
             {
-                "barmode": "relative",
-                "margin": {"l": 0, "r": 0, "b": 20, "t": 50},
+                "barmode": "overlay",
+                "margin": {"l": 0, "r": 0, "b": 20, "t": 0},
                 "xaxis": {
                     "title": self._scale,
                     "autorange": True,
