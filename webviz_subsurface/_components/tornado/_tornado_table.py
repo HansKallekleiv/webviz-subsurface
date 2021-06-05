@@ -26,12 +26,8 @@ class TornadoTable:
         self._table["Delta high"] = (
             self._table["true_high"].astype("float") - tornado_data.reference_average
         )
-        self._table["low_reals"] = self._table["low_reals"].apply(
-            lambda x: printable_int_list(x)
-        )
-        self._table["high_reals"] = self._table["high_reals"].apply(
-            lambda x: printable_int_list(x)
-        )
+        self._table["low_reals"] = self._table["low_reals"].apply(printable_int_list)
+        self._table["high_reals"] = self._table["high_reals"].apply(printable_int_list)
 
         self._table.rename(
             columns={

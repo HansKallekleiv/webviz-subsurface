@@ -1,7 +1,6 @@
 from typing import List, Optional, Dict, Any, Union, Tuple
 from uuid import uuid4
 import json
-from dash_table.DataTable import DataTable
 
 import pandas as pd
 import dash
@@ -13,7 +12,6 @@ import dash_core_components as dcc
 import webviz_core_components as wcc
 from webviz_config import WebvizSettings
 
-from webviz_subsurface._utils.formatting import printable_int_list
 from ._tornado_data import TornadoData
 from ._tornado_bar_chart import TornadoBarChart
 from ._tornado_table import TornadoTable
@@ -64,7 +62,7 @@ class TornadoWidget:
         allow_click: bool = False,
     ):
         self.realizations = realizations
-        self.height = "90vh"
+        self.height = height
         self.sensnames = list(self.realizations["SENSNAME"].unique())
         if self.sensnames == [None]:
             raise KeyError(
@@ -360,7 +358,6 @@ class TornadoWidget:
                 Output(self.ids("high-low-storage"), "data"),
             ],
             [
-                Input(self.ids("plot-or-table"), "value"),
                 Input(self.ids("reference"), "value"),
                 Input(self.ids("scale"), "value"),
                 Input(self.ids("cut-by-ref"), "value"),
@@ -369,7 +366,6 @@ class TornadoWidget:
             ],
         )
         def _calc_tornado(
-            plot_type: str,
             reference: str,
             scale: str,
             cutbyref: str,

@@ -1,7 +1,5 @@
 from typing import Optional, List, Dict, Any
 
-import pandas as pd
-
 from webviz_subsurface._abbreviations.number_formatting import si_prefixed
 from webviz_subsurface._utils.formatting import printable_int_list
 from ._tornado_data import TornadoData
@@ -33,6 +31,28 @@ class TornadoBarChart:
             self._unit_x = self._unit
             self._locked_si_prefix_relative = locked_si_prefix
 
+    def _set_si_prefix(self, value: float) -> str:
+        return str(
+            si_prefixed(
+                value,
+                self._number_format,
+                self._unit,
+                self._spaced,
+                self._locked_si_prefix,
+            )
+        )
+
+    def _set_si_prefix_relative(self, value: float) -> str:
+        return str(
+            si_prefixed(
+                value,
+                self._number_format,
+                self._unit_x,
+                self._spaced,
+                self._locked_si_prefix_relative,
+            )
+        )
+
     @property
     def data(self) -> List:
         return [
@@ -44,8 +64,8 @@ class TornadoBarChart:
                 base=self._tornadotable["low_base"],
                 customdata=self._tornadotable["low_reals"],
                 text=[
-                    f"{si_prefixed(x, self._number_format, self._unit_x, self._spaced, self._locked_si_prefix_relative)}, "
-                    f"True: {si_prefixed(val, self._number_format, self._unit, self._spaced, self._locked_si_prefix)}, "
+                    f"{self._set_si_prefix_relative(x)}, "
+                    f"True: {self._set_si_prefix(val)}, "
                     f"<br>Case: {label}, "
                     f"Realizations: {printable_int_list(reals)}"
                     if reals
@@ -71,8 +91,8 @@ class TornadoBarChart:
                 base=self._tornadotable["high_base"],
                 customdata=self._tornadotable["high_reals"],
                 text=[
-                    f"{si_prefixed(x, self._number_format, self._unit_x, self._spaced, self._locked_si_prefix_relative)}, "
-                    f"True: {si_prefixed(val, self._number_format, self._unit, self._spaced, self._locked_si_prefix)}, "
+                    f"{self._set_si_prefix_relative(x)}, "
+                    f"True: {self._set_si_prefix(val)}, "
                     f"<br>Case: {label}, "
                     f"Realizations: {printable_int_list(reals)}"
                     if reals
@@ -126,7 +146,7 @@ class TornadoBarChart:
                         "xref": "x",
                         "yref": "y",
                         "text": f"Reference avg: "
-                        f"{si_prefixed(self._reference_average, self._number_format, self._unit, self._spaced, self._locked_si_prefix)}",
+                        f"{self._set_si_prefix(self._reference_average)}",
                         "showarrow": True,
                         "align": "center",
                         "arrowhead": 2,

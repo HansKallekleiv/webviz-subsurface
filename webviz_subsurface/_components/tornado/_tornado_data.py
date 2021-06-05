@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 import pandas as pd
 
 
@@ -27,7 +27,7 @@ class TornadoData:
                 raise KeyError(f"Tornado input is missing {col}")
 
         if list(dframe["SENSCASE"].unique()) == [None]:
-            raise KeyError(f"No sensitivities found in tornado input")
+            raise KeyError("No sensitivities found in tornado input")
 
         for sens_name, sens_name_df in dframe.groupby("SENSNAME"):
             if sens_name_df["SENSTYPE"].all() not in ["scalar", "mc"]:
@@ -148,7 +148,7 @@ class TornadoData:
                 # Single case sens, implies low == high, but testing just in case:
                 if low["values_ref"] != high["values_ref"]:
                     raise ValueError(
-                        "For a single sensitivity case, low and high cases should be equal. Likely bug"
+                        "For a single sensitivity case, low and high cases should be equal."
                     )
                 if low["values_ref"] < 0:
                     # To avoid warnings for changing values of dataframe slices.
