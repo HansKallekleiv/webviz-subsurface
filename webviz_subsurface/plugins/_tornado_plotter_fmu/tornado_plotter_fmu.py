@@ -1,0 +1,270 @@
+from typing import Dict, List, Any
+from pathlib import Path
+import json
+
+import dash
+from dash.dependencies import Input, Output, ALL
+import dash_html_components as html
+import dash_core_components as dcc
+from webviz_config import WebvizPluginABC
+from webviz_config import WebvizSettings
+from webviz_config.webviz_assets import WEBVIZ_ASSETS
+import webviz_core_components as wcc
+
+import webviz_subsurface
+from webviz_subsurface._providers import EnsembleTableProviderFactory
+from webviz_subsurface._components.tornado.tornado_widget import TornadoWidget
+from webviz_subsurface._datainput.fmu_input import find_sens_type
+
+
+class TornadoPlotterFMU(WebvizPluginABC):
+    """General tornado plotter for FMU data
+
+    ---
+
+    * **`ensembles`:** Which ensembles in `shared_settings` to visualize.
+    * **`csvfile`:** Relative path to Csv file stored per realization
+    * **`initial_data`:** Initialize data selectors (x,y,ensemble, parameter)
+    """
+
+    # pylint: disable=too-many-locals, too-many-arguments
+    def __init__(
+        self,
+        app: dash.Dash,
+        webviz_settings: WebvizSettings,
+        csvfile: str = None,
+        ensemble: str = None,
+        aggregated_csvfile: Path = None,
+        aggregated_parameterfile: Path = None,
+        initial_response: str = None,
+        single_value_selectors: List[str] = None,
+        multi_value_selectors: List[str] = None,
+    ):
+        super().__init__()
+        WEBVIZ_ASSETS.add(
+            Path(webviz_subsurface.__file__).parent
+            / "_assets"
+            / "css"
+            / "container.css"
+        )
+        self._single_filters = single_value_selectors if single_value_selectors else []
+        self._multi_filters = multi_value_selectors if multi_value_selectors else []
+        provider = EnsembleTableProviderFactory.instance()
+
+        if ensemble is not None and csvfile is not None:
+            ensemble_dict: Dict[str, str] = {
+                ensemble: webviz_settings.shared_settings["scratch_ensembles"][ensemble]
+            }
+            self._parameterproviderset = (
+                provider.create_provider_set_from_per_realization_parameter_file(
+                    ensemble_dict
+                )
+            )
+            self._tableproviderset = (
+                provider.create_provider_set_from_per_realization_csv_file(
+                    ensemble_dict, csvfile
+                )
+            )
+            self._ensemble_name = ensemble
+        elif aggregated_csvfile and aggregated_parameterfile is not None:
+            self._tableproviderset = (
+                provider.create_provider_set_from_aggregated_csv_file(
+                    aggregated_csvfile
+                )
+            )
+            self._parameterproviderset = (
+                provider.create_provider_set_from_aggregated_csv_file(
+                    aggregated_parameterfile
+                )
+            )
+            if len(self._tableproviderset.ensemble_names()) != 1:
+                raise ValueError(
+                    "Csv file has multiple ensembles. "
+                    "This plugin only supports a single ensemble"
+                )
+            self._ensemble_name = self._tableproviderset.ensemble_names()[0]
+        else:
+            raise ValueError(
+                "Specify either ensembles and csvfile or aggregated_csvfile "
+                "and aggregated_parameterfile"
+            )
+
+        try:
+            design_matrix_df = self._parameterproviderset.ensemble_provider(
+                self._ensemble_name
+            ).get_column_data(column_names=["SENSNAME", "SENSCASE"])
+        except KeyError as exc:
+            raise KeyError(
+                "Required columns 'SENSNAME' and 'SENSCASE' is missing "
+                f"from {self._ensemble_name}. Cannot calculate tornado plots"
+            ) from exc
+        design_matrix_df["ENSEMBLE"] = self._ensemble_name
+        design_matrix_df["SENSTYPE"] = design_matrix_df.apply(
+            lambda row: find_sens_type(row.SENSCASE), axis=1
+        )
+        self._tornado_widget = TornadoWidget(
+            realizations=design_matrix_df, app=app, webviz_settings=webviz_settings
+        )
+        self._responses = self._tableproviderset.ensemble_provider(
+            self._ensemble_name
+        ).column_names()
+        if self._single_filters:
+            self._responses = [
+                response
+                for response in self._responses
+                if response not in self._single_filters
+            ]
+        if self._multi_filters:
+            self._responses = [
+                response
+                for response in self._responses
+                if response not in self._multi_filters
+            ]
+        self._initial_response = (
+            initial_response if initial_response else self._responses[0]
+        )
+        self.set_callbacks(app)
+
+    @property
+    def single_filter_layout(self) -> html.Div:
+        if self._single_filters is None:
+            return html.Div()
+        elements = []
+        for selector in self._single_filters:
+            values = (
+                self._tableproviderset.ensemble_provider(self._ensemble_name)
+                .get_column_data([selector])[selector]
+                .unique()
+            )
+            elements.append(
+                html.Div(
+                    children=[
+                        html.Label(selector),
+                        dcc.Dropdown(
+                            id={
+                                "id": self.uuid("selectors"),
+                                "name": selector,
+                                "type": "single_filter",
+                            },
+                            options=[{"label": val, "value": val} for val in values],
+                            value=values[0],
+                            clearable=False,
+                        ),
+                    ]
+                ),
+            )
+        return html.Div(children=elements)
+
+    @property
+    def multi_filter_layout(self) -> html.Div:
+        if self._single_filters is None:
+            return html.Div()
+        elements = []
+        for selector in self._multi_filters:
+            values = (
+                self._tableproviderset.ensemble_provider(self._ensemble_name)
+                .get_column_data([selector])[selector]
+                .unique()
+            )
+            elements.append(
+                html.Div(
+                    children=[
+                        html.Label(selector),
+                        wcc.Select(
+                            id={
+                                "id": self.uuid("selectors"),
+                                "name": selector,
+                                "type": "multi_filter",
+                            },
+                            options=[{"label": val, "value": val} for val in values],
+                            value=values,
+                            size=min(5, len(values)),
+                        ),
+                    ]
+                ),
+            )
+        return html.Div(children=elements)
+
+    @property
+    def layout(self) -> html.Div:
+        return wcc.FlexBox(
+            children=[
+                html.Div(
+                    style={"flex": 1},
+                    className="framed",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Div(
+                                    children=[
+                                        html.Label("Response"),
+                                        dcc.Dropdown(
+                                            id=self.uuid("response"),
+                                            options=[
+                                                {"label": response, "value": response}
+                                                for response in self._responses
+                                            ],
+                                            value=self._initial_response,
+                                            clearable=False,
+                                        ),
+                                        self.single_filter_layout,
+                                        self.multi_filter_layout,
+                                    ]
+                                )
+                            ]
+                        )
+                    ],
+                ),
+                html.Div(
+                    id=self.uuid("tornado"),
+                    style={"flex": 5},
+                    className="framed",
+                    children=self._tornado_widget.layout,
+                ),
+            ]
+        )
+
+    def set_callbacks(self, app: dash.Dash) -> None:
+        @app.callback(
+            Output(self._tornado_widget.storage_id, "data"),
+            Input(self.uuid("response"), "value"),
+            Input(
+                {"id": self.uuid("selectors"), "name": ALL, "type": "single_filter"},
+                "value",
+            ),
+            Input(
+                {"id": self.uuid("selectors"), "name": ALL, "type": "multi_filter"},
+                "value",
+            ),
+        )
+        def _set_response(
+            response: str, single_filters: List, multi_filters: List
+        ) -> str:
+
+            data = self._tableproviderset.ensemble_provider(
+                self._ensemble_name
+            ).get_column_data([response] + self._single_filters + self._multi_filters)
+
+            # Filter data
+            if single_filters is not None:
+                for value, input_dict in zip(
+                    single_filters, dash.callback_context.inputs_list[1]
+                ):
+                    data = data.loc[data[input_dict["id"]["name"]] == value]
+            if multi_filters is not None:
+                for value, input_dict in zip(
+                    multi_filters, dash.callback_context.inputs_list[2]
+                ):
+                    data = data.loc[data[input_dict["id"]["name"]].isin(value)]
+            tornado = json.dumps(
+                {
+                    "ENSEMBLE": self._ensemble_name,
+                    "data": data.groupby("REAL")
+                    .sum()
+                    .reset_index()[["REAL", response]]
+                    .values.tolist(),
+                    "number_format": "#.4g",
+                    # "unit": volume_unit(response),
+                }
+            )
+            return tornado
