@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Union
 import pandas as pd
 
 
@@ -12,8 +12,8 @@ class TornadoData:
         cutbyref: bool = False,
         scale: str = "Percentage",
     ) -> None:
-        self._validate_input(dframe)
         self._reference = reference
+        self._validate_input(dframe)
         self._scale = scale
         self._reference_average = self._calculate_ref_average(dframe)
         self._tornadotable = self._calculate_tornado_table(dframe)
@@ -34,6 +34,8 @@ class TornadoData:
                 raise ValueError(
                     f"Sensitivity {sens_name} is not of type 'mc' or 'scalar"
                 )
+        if dframe.loc[dframe["SENSNAME"].isin([self._reference])].empty:
+            raise ValueError(f"Reference SENSNAME {self._reference} not in input data")
 
     @property
     def scale(self) -> str:
@@ -48,8 +50,8 @@ class TornadoData:
         return self._reference_average
 
     def _calculate_tornado_table(self, dframe: pd.DataFrame) -> pd.DataFrame:
-        average_dframe = self._calculate_sensitivity_averages(dframe)
-        return self._calculate_tornado_low_high_dataframe(average_dframe)
+        avg_per_sensitivity = self._calculate_sensitivity_averages(dframe)
+        return pd.DataFrame(self._calculate_tornado_low_high_list(avg_per_sensitivity))
 
     @property
     def tornadotable(self) -> pd.DataFrame:
@@ -65,7 +67,9 @@ class TornadoData:
             )
         return value_ref
 
-    def _calculate_sensitivity_averages(self, dframe: pd.DataFrame) -> pd.DataFrame:
+    def _calculate_sensitivity_averages(
+        self, dframe: pd.DataFrame
+    ) -> List[Dict[str, Union[str, list, float]]]:
         avg_per_sensitivity = []
 
         for sens_name, sens_name_df in dframe.groupby(["SENSNAME"]):
@@ -135,13 +139,15 @@ class TornadoData:
                     }
                 )
 
-        return pd.DataFrame(avg_per_sensitivity)
+        return avg_per_sensitivity
 
-    def _calculate_tornado_low_high_dataframe(
-        self, sens_average_dframe: pd.DataFrame
-    ) -> pd.DataFrame:
+    def _calculate_tornado_low_high_list(
+        self, avg_per_sensitivity: List
+    ) -> List[Dict[str, Union[str, list, float]]]:
         low_high_per_sensitivity = []
-        for sensname, sens_name_df in sens_average_dframe.groupby(["sensname"]):
+        for sensname, sens_name_df in pd.DataFrame(avg_per_sensitivity).groupby(
+            ["sensname"]
+        ):
             low = sens_name_df.copy().loc[sens_name_df["values_ref"].idxmin()]
             high = sens_name_df.copy().loc[sens_name_df["values_ref"].idxmax()]
             if sens_name_df["senscase"].nunique() == 1:
@@ -187,7 +193,7 @@ class TornadoData:
                     "high_reals": high["reals"],
                 }
             )
-        return pd.DataFrame(low_high_per_sensitivity)
+        return low_high_per_sensitivity
 
     def _cut_sensitivities_by_ref(self) -> None:
         """Removes sensitivities smaller than reference sensitivity from table"""
@@ -215,7 +221,7 @@ class TornadoData:
         self._tornadotable.drop(["max"], axis=1, inplace=True)
 
     @property
-    def low_high_realizations_list(self) -> Dict:
+    def low_high_realizations_list(self) -> Dict[str, Dict]:
         return {
             sensname: {
                 "real_low": sens_name_df["low_reals"].tolist()[0],
