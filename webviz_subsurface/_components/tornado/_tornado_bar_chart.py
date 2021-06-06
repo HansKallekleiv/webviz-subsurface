@@ -31,6 +31,10 @@ class TornadoBarChart:
             self._unit_x = self._unit
             self._locked_si_prefix_relative = locked_si_prefix
 
+    @property
+    def figure_height(self) -> int:
+        return 100 * len(self._tornadotable["sensname"].unique())
+
     def _set_si_prefix(self, value: float) -> str:
         return str(
             si_prefixed(
@@ -118,6 +122,7 @@ class TornadoBarChart:
         _layout.update(self._plotly_theme["layout"])
         _layout.update(
             {
+                "height": self.figure_height,
                 "barmode": "overlay",
                 "margin": {"l": 0, "r": 0, "b": 20, "t": 0},
                 "xaxis": {
@@ -127,6 +132,7 @@ class TornadoBarChart:
                     "zeroline": False,
                     "showline": True,
                     "automargin": True,
+                    "side": "top",
                 },
                 "yaxis": {
                     "autorange": True,
@@ -142,7 +148,7 @@ class TornadoBarChart:
                 "annotations": [
                     {
                         "x": 0,
-                        "y": len(list(self._tornadotable["low"])),
+                        "y": len(list(self._tornadotable["low"])) - 0.5,
                         "xref": "x",
                         "yref": "y",
                         "text": f"Reference avg: "
