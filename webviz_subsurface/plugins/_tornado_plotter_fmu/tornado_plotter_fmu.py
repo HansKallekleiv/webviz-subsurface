@@ -23,8 +23,24 @@ class TornadoPlotterFMU(WebvizPluginABC):
     ---
 
     * **`ensembles`:** Which ensembles in `shared_settings` to visualize.
-    * **`csvfile`:** Relative path to Csv file stored per realization
-    * **`initial_data`:** Initialize data selectors (x,y,ensemble, parameter)
+    * **`csvfile`:** Relative ensemble path to csv file with responses
+    * **`aggregated_csvfile`:** Alternative to ensemble + csvfile with
+    aggregated responses. Requires REAL and ENSEMBLE columns
+    * **`aggregated_parameterfile`:** Necessary when aggregated_csvfile
+    is specified. File with sensitivity specification for each realization.
+    Requires columns REAL, ENSEMBLE, SENSNAME and SENSCASE.
+    * **`initial_response`:** Initialize column with this response column
+    visualized
+    * **`single_value_selectors`:** List of columns in response csv file
+    that should be used to select/filter data. E.g. for UNSMRY data the DATE
+    column can be used. For each entry a Dropdown is shown with all unique
+    values and a single value can be selected at a time.
+    * **`multi_value_selectors`:** List of column in response csv file
+    to filter/select data. For each entry a Select is shown with
+    all unique values. Multiple values can be selected at a time,
+    and a tornado plot will be shown from the matching response rows.
+    Used e.g. for volumetrics data, to select a subset of ZONES and
+    REGIONS.
     """
 
     # pylint: disable=too-many-locals, too-many-arguments
@@ -127,8 +143,6 @@ class TornadoPlotterFMU(WebvizPluginABC):
 
     @property
     def single_filter_layout(self) -> html.Div:
-        if self._single_filters is None:
-            return html.Div()
         elements = []
         for selector in self._single_filters:
             values = (
@@ -157,8 +171,6 @@ class TornadoPlotterFMU(WebvizPluginABC):
 
     @property
     def multi_filter_layout(self) -> html.Div:
-        if self._single_filters is None:
-            return html.Div()
         elements = []
         for selector in self._multi_filters:
             values = (
@@ -255,6 +267,7 @@ class TornadoPlotterFMU(WebvizPluginABC):
                 for value, input_dict in zip(
                     multi_filters, dash.callback_context.inputs_list[2]
                 ):
+                    print(value)
                     data = data.loc[data[input_dict["id"]["name"]].isin(value)]
             tornado = json.dumps(
                 {
