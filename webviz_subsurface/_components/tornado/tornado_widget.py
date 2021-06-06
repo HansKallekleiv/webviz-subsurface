@@ -317,6 +317,10 @@ class TornadoWidget:
                     style={"display": "none"},
                     children=dash_table.DataTable(
                         id=self.ids("tornado-table"),
+                        style_cell={
+                            "whiteSpace": "normal",
+                            "height": "auto",
+                        },
                         columns=[
                             {
                                 "name": col,
