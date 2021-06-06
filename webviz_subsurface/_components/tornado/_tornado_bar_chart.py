@@ -33,6 +33,7 @@ class TornadoBarChart:
 
     @property
     def figure_height(self) -> int:
+        """Set height of figure as a function of number of senscases(bars)"""
         return 100 * len(self._tornadotable["sensname"].unique())
 
     def _set_si_prefix(self, value: float) -> str:

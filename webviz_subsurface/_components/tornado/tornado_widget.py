@@ -129,24 +129,13 @@ class TornadoWidget:
         """The id of the dcc.Store component that holds click data"""
         return self.ids("high-low-storage")
 
-    @staticmethod
-    def set_grid_layout(columns: Union[str, List[str]]) -> Dict[str, str]:
-        return {
-            "display": "grid",
-            "alignContent": "space-around",
-            "justifyContent": "space-between",
-            "gridTemplateColumns": f"{columns}",
-        }
-
     @property
     def settings_layout(self) -> html.Div:
         return html.Div(
             children=[
                 html.Div(
-                    # style={"maxWidth": "600px"},
                     children=[
                         wcc.FlexBox(
-                            # style=self.set_grid_layout("1fr 1fr"),
                             children=[
                                 html.Div(
                                     style={
