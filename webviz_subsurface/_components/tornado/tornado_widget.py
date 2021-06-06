@@ -1,17 +1,20 @@
 from typing import List, Optional, Dict, Any, Union, Tuple
 from uuid import uuid4
 import json
+from pathlib import Path
 
 import pandas as pd
 import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ClientsideFunction
 from dash.exceptions import PreventUpdate
 import dash_table
 import dash_html_components as html
 import dash_core_components as dcc
 import webviz_core_components as wcc
 from webviz_config import WebvizSettings
+from webviz_config.webviz_assets import WEBVIZ_ASSETS
 
+import webviz_subsurface
 from ._tornado_data import TornadoData
 from ._tornado_bar_chart import TornadoBarChart
 from ._tornado_table import TornadoTable
@@ -58,11 +61,9 @@ class TornadoWidget:
         webviz_settings: WebvizSettings,
         realizations: pd.DataFrame,
         reference: str = "rms_seed",
-        height: str = "90vh",
         allow_click: bool = False,
     ):
         self.realizations = realizations
-        self.height = height
         self.sensnames = list(self.realizations["SENSNAME"].unique())
         if self.sensnames == [None]:
             raise KeyError(
@@ -77,6 +78,12 @@ class TornadoWidget:
         self.allow_click = allow_click
         self.uid = uuid4()
         self.plotly_theme = webviz_settings.theme.plotly_theme
+        WEBVIZ_ASSETS.add(
+            Path(webviz_subsurface.__file__).parent
+            / "_assets"
+            / "js"
+            / "viewport_to_pixels.js"
+        )
         self.set_callbacks(app)
 
     def ids(self, element: str) -> str:
@@ -170,7 +177,7 @@ class TornadoWidget:
                                         "minWidth": "100px",
                                         "flex": 1,
                                     },
-                                    children=html.Label("Reset plot:"),
+                                    children=html.Label("Plot options:"),
                                 ),
                             ],
                         ),
@@ -252,31 +259,59 @@ class TornadoWidget:
                                         "minWidth": "100px",
                                         "flex": 1,
                                     },
-                                    children=dcc.Checklist(
-                                        id=self.ids("cut-by-ref"),
-                                        options=[
-                                            {
-                                                "label": "Cut by reference",
-                                                "value": "Cut by reference",
-                                            },
-                                        ],
-                                        value=[],
-                                        persistence=True,
-                                        persistence_type="session",
-                                    ),
+                                    children=[
+                                        dcc.Checklist(
+                                            id=self.ids("cut-by-ref"),
+                                            options=[
+                                                {
+                                                    "label": "Cut by reference",
+                                                    "value": "Cut by reference",
+                                                },
+                                            ],
+                                            value=[],
+                                            persistence=True,
+                                            persistence_type="session",
+                                        )
+                                    ],
                                 ),
                                 html.Div(
                                     style={
                                         "minWidth": "100px",
                                         "flex": 1,
                                     },
-                                    children=html.Button(
-                                        style={
-                                            "fontSize": "10px",
-                                        },
-                                        id=self.ids("reset"),
-                                        children="Clear selected",
-                                    ),
+                                    children=[
+                                        html.Button(
+                                            style={
+                                                "fontSize": "10px",
+                                            },
+                                            id=self.ids("reset"),
+                                            children="Clear selected",
+                                        ),
+                                        dcc.Checklist(
+                                            id=self.ids("show-all-bars"),
+                                            options=[
+                                                {
+                                                    "label": "Show all bars",
+                                                    "value": "Show all bars",
+                                                },
+                                            ],
+                                            value=[],
+                                            persistence=True,
+                                            persistence_type="session",
+                                        ),
+                                        dcc.Checklist(
+                                            id=self.ids("show-labels"),
+                                            options=[
+                                                {
+                                                    "label": "Show labels",
+                                                    "value": "Show labels",
+                                                },
+                                            ],
+                                            value=["Show labels"],
+                                            persistence=True,
+                                            persistence_type="session",
+                                        ),
+                                    ],
                                 ),
                             ],
                         ),
@@ -354,6 +389,7 @@ class TornadoWidget:
                 dcc.Store(id=self.ids("storage"), storage_type="session"),
                 dcc.Store(id=self.ids("click-store"), storage_type="session"),
                 dcc.Store(id=self.ids("high-low-storage"), storage_type="session"),
+                dcc.Store(id=self.ids("client-height-pixels"), storage_type="session"),
             ],
         )
 
@@ -376,19 +412,26 @@ class TornadoWidget:
                 table_style.update({"display": "inline"})
             return graph_style, table_style
 
+        app.clientside_callback(
+            ClientsideFunction(
+                namespace="clientside", function_name="view_height_to_pixels"
+            ),
+            Output(self.ids("client-height-pixels"), "data"),
+            Input(self.ids("show-all-bars"), "value"),
+        )
+
         @app.callback(
-            [
-                Output(self.ids("tornado-graph"), "figure"),
-                Output(self.ids("tornado-table"), "data"),
-                Output(self.ids("high-low-storage"), "data"),
-            ],
-            [
-                Input(self.ids("reference"), "value"),
-                Input(self.ids("scale"), "value"),
-                Input(self.ids("cut-by-ref"), "value"),
-                Input(self.ids("storage"), "data"),
-                Input(self.ids("sens_filter"), "value"),
-            ],
+            Output(self.ids("tornado-graph"), "figure"),
+            Output(self.ids("tornado-table"), "data"),
+            Output(self.ids("high-low-storage"), "data"),
+            Input(self.ids("reference"), "value"),
+            Input(self.ids("scale"), "value"),
+            Input(self.ids("cut-by-ref"), "value"),
+            Input(self.ids("storage"), "data"),
+            Input(self.ids("sens_filter"), "value"),
+            Input(self.ids("show-all-bars"), "value"),
+            Input(self.ids("show-labels"), "value"),
+            State(self.ids("client-height-pixels"), "data"),
         )
         def _calc_tornado(
             reference: str,
@@ -396,6 +439,9 @@ class TornadoWidget:
             cutbyref: str,
             data: Union[str, bytes, bytearray],
             sens_filter: List[str],
+            show_all_bars: List,
+            show_labels: List,
+            client_height: Optional[int],
         ) -> Tuple[dict, dict]:
             if not data:
                 raise PreventUpdate
@@ -406,6 +452,11 @@ class TornadoWidget:
             realizations = self.realizations.loc[
                 self.realizations["ENSEMBLE"] == data["ENSEMBLE"]
             ]
+            figure_height = (
+                client_height * 0.69
+                if show_all_bars and client_height is not None
+                else None
+            )
             design_and_responses = pd.merge(values, realizations, on="REAL")
             if sens_filter is not None:
                 if reference not in sens_filter:
@@ -423,6 +474,8 @@ class TornadoWidget:
             tornado_figure = TornadoBarChart(
                 tornado_data=tornado_data,
                 plotly_theme=self.plotly_theme,
+                figure_height=figure_height,
+                show_labels=bool(show_labels),
                 number_format=data.get("number_format", ""),
                 unit=data.get("unit", ""),
                 spaced=data.get("spaced", True),

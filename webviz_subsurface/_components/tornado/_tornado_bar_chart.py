@@ -10,6 +10,8 @@ class TornadoBarChart:
         self,
         tornado_data: TornadoData,
         plotly_theme: Dict[str, Any],
+        figure_height: Optional[int] = None,
+        show_labels: bool = True,
         locked_si_prefix: Optional[int] = None,
         number_format: str = "",
         unit: str = "",
@@ -30,11 +32,17 @@ class TornadoBarChart:
         else:
             self._unit_x = self._unit
             self._locked_si_prefix_relative = locked_si_prefix
+        self._figure_height = (
+            figure_height
+            if figure_height
+            else 100 * len(self._tornadotable["sensname"].unique())
+        )
+        self._show_labels = show_labels
 
     @property
     def figure_height(self) -> int:
         """Set height of figure as a function of number of senscases(bars)"""
-        return 100 * len(self._tornadotable["sensname"].unique())
+        return self._figure_height
 
     def _set_si_prefix(self, value: float) -> str:
         return str(
@@ -81,7 +89,9 @@ class TornadoBarChart:
                         self._tornadotable["true_low"],
                         self._tornadotable["low_reals"],
                     )
-                ],
+                ]
+                if self._show_labels
+                else [],
                 textposition="auto",
                 insidetextanchor="middle",
                 hoverinfo="none",
@@ -108,7 +118,9 @@ class TornadoBarChart:
                         self._tornadotable["true_high"],
                         self._tornadotable["high_reals"],
                     )
-                ],
+                ]
+                if self._show_labels
+                else [],
                 textposition="auto",
                 insidetextanchor="middle",
                 hoverinfo="none",
