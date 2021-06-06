@@ -6,6 +6,7 @@ from ._tornado_data import TornadoData
 
 
 class TornadoBarChart:
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         tornado_data: TornadoData,
