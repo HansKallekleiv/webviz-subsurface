@@ -64,10 +64,10 @@ class TornadoBarChart:
                 base=self._tornadotable["low_base"],
                 customdata=self._tornadotable["low_reals"],
                 text=[
-                    f"{self._set_si_prefix_relative(x)}, "
+                    f"<b>{self._set_si_prefix_relative(x)}</b>, "
                     f"True: {self._set_si_prefix(val)}, "
-                    f"<br>Case: {label}, "
-                    f"Realizations: {printable_int_list(reals)}"
+                    f"<br><b>Case: {label}</b>, "
+                    f"Reals: {printable_int_list(reals)}"
                     if reals
                     else None
                     for x, label, val, reals in zip(
@@ -91,10 +91,10 @@ class TornadoBarChart:
                 base=self._tornadotable["high_base"],
                 customdata=self._tornadotable["high_reals"],
                 text=[
-                    f"{self._set_si_prefix_relative(x)}, "
+                    f"<b>{self._set_si_prefix_relative(x)}</b>, "
                     f"True: {self._set_si_prefix(val)}, "
-                    f"<br>Case: {label}, "
-                    f"Realizations: {printable_int_list(reals)}"
+                    f"<br><b>Case: {label}</b>, "
+                    f"Reals: {printable_int_list(reals)}"
                     if reals
                     else None
                     for x, label, val, reals in zip(
