@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, List
 from pathlib import Path
 import json
 
@@ -18,10 +18,8 @@ from webviz_subsurface._datainput.fmu_input import find_sens_type
 
 
 class TornadoPlotterFMU(WebvizPluginABC):
-    """General tornado plotter for FMU data
-
+    """General tornado plotter for FMU data from a csv file of responses.
     ---
-
     * **`ensembles`:** Which ensembles in `shared_settings` to visualize.
     * **`csvfile`:** Relative ensemble path to csv file with responses
     * **`aggregated_csvfile`:** Alternative to ensemble + csvfile with
@@ -29,13 +27,13 @@ class TornadoPlotterFMU(WebvizPluginABC):
     * **`aggregated_parameterfile`:** Necessary when aggregated_csvfile
     is specified. File with sensitivity specification for each realization.
     Requires columns REAL, ENSEMBLE, SENSNAME and SENSCASE.
-    * **`initial_response`:** Initialize column with this response column
+    * **`initial_response`:** Initialize plugin with this response column
     visualized
     * **`single_value_selectors`:** List of columns in response csv file
     that should be used to select/filter data. E.g. for UNSMRY data the DATE
     column can be used. For each entry a Dropdown is shown with all unique
     values and a single value can be selected at a time.
-    * **`multi_value_selectors`:** List of column in response csv file
+    * **`multi_value_selectors`:** List of columns in response csv file
     to filter/select data. For each entry a Select is shown with
     all unique values. Multiple values can be selected at a time,
     and a tornado plot will be shown from the matching response rows.
@@ -121,7 +119,7 @@ class TornadoPlotterFMU(WebvizPluginABC):
         self._tornado_widget = TornadoWidget(
             realizations=design_matrix_df, app=app, webviz_settings=webviz_settings
         )
-        self._responses = self._tableproviderset.ensemble_provider(
+        self._responses: List[str] = self._tableproviderset.ensemble_provider(
             self._ensemble_name
         ).column_names()
         if self._single_filters:
@@ -136,13 +134,14 @@ class TornadoPlotterFMU(WebvizPluginABC):
                 for response in self._responses
                 if response not in self._multi_filters
             ]
-        self._initial_response = (
+        self._initial_response: str = (
             initial_response if initial_response else self._responses[0]
         )
         self.set_callbacks(app)
 
     @property
     def single_filter_layout(self) -> html.Div:
+        """Creates dropdowns for any data columns added as single value filters"""
         elements = []
         for selector in self._single_filters:
             values = (
@@ -171,6 +170,7 @@ class TornadoPlotterFMU(WebvizPluginABC):
 
     @property
     def multi_filter_layout(self) -> html.Div:
+        """Creates wcc.Selects for any data columns added as multi value filters"""
         elements = []
         for selector in self._multi_filters:
             values = (
@@ -198,6 +198,24 @@ class TornadoPlotterFMU(WebvizPluginABC):
         return html.Div(children=elements)
 
     @property
+    def response_layout(self) -> html.Div:
+        """Creates a labelled dropdown with all response columns"""
+        return html.Div(
+            children=[
+                html.Label("Response"),
+                dcc.Dropdown(
+                    id=self.uuid("response"),
+                    options=[
+                        {"label": response, "value": response}
+                        for response in self._responses
+                    ],
+                    value=self._initial_response,
+                    clearable=False,
+                ),
+            ]
+        )
+
+    @property
     def layout(self) -> html.Div:
         return wcc.FlexBox(
             children=[
@@ -205,30 +223,12 @@ class TornadoPlotterFMU(WebvizPluginABC):
                     style={"flex": 1},
                     className="framed",
                     children=[
-                        html.Div(
-                            children=[
-                                html.Div(
-                                    children=[
-                                        html.Label("Response"),
-                                        dcc.Dropdown(
-                                            id=self.uuid("response"),
-                                            options=[
-                                                {"label": response, "value": response}
-                                                for response in self._responses
-                                            ],
-                                            value=self._initial_response,
-                                            clearable=False,
-                                        ),
-                                        self.single_filter_layout,
-                                        self.multi_filter_layout,
-                                    ]
-                                )
-                            ]
-                        )
+                        self.response_layout,
+                        self.single_filter_layout,
+                        self.multi_filter_layout,
                     ],
                 ),
                 html.Div(
-                    id=self.uuid("tornado"),
                     style={"flex": 5},
                     className="framed",
                     children=self._tornado_widget.layout,
@@ -249,9 +249,10 @@ class TornadoPlotterFMU(WebvizPluginABC):
                 "value",
             ),
         )
-        def _set_response(
+        def _update_tornado_with_response_values(
             response: str, single_filters: List, multi_filters: List
         ) -> str:
+            """Returns a json dump for the tornado plot with the response values per realization"""
 
             data = self._tableproviderset.ensemble_provider(
                 self._ensemble_name
@@ -267,9 +268,9 @@ class TornadoPlotterFMU(WebvizPluginABC):
                 for value, input_dict in zip(
                     multi_filters, dash.callback_context.inputs_list[2]
                 ):
-                    print(value)
                     data = data.loc[data[input_dict["id"]["name"]].isin(value)]
-            tornado = json.dumps(
+
+            return json.dumps(
                 {
                     "ENSEMBLE": self._ensemble_name,
                     "data": data.groupby("REAL")
@@ -277,7 +278,5 @@ class TornadoPlotterFMU(WebvizPluginABC):
                     .reset_index()[["REAL", response]]
                     .values.tolist(),
                     "number_format": "#.4g",
-                    # "unit": volume_unit(response),
                 }
             )
-            return tornado
