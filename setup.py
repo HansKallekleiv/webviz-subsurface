@@ -58,6 +58,7 @@ setup(
             "StructuralUncertainty = webviz_subsurface.plugins:StructuralUncertainty",
             "SubsurfaceMap = webviz_subsurface.plugins:SubsurfaceMap",
             "SurfaceViewerFMU = webviz_subsurface.plugins:SurfaceViewerFMU",
+            "SurfaceViewerSumo = webviz_subsurface.plugins:SurfaceViewerSumo",
             "SurfaceWithGridCrossSection = webviz_subsurface.plugins:SurfaceWithGridCrossSection",
             "SurfaceWithSeismicCrossSection = webviz_subsurface.plugins:SurfaceWithSeismicCrossSection",
             "VolumetricAnalysis = webviz_subsurface.plugins:VolumetricAnalysis",

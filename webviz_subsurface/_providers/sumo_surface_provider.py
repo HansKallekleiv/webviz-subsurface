@@ -2,9 +2,9 @@ import xtgeo, io
 from sumo.wrapper import CallSumoApi
 
 
-class _Sumo:
+class SumoSurfaceProvider:
     def __init__(self, api=None, env=None):
-        self.api = api
+        self.api = CallSumoApi(env)
 
     def search(self, sumo_parent_id=None, query=None, search_size=20):
         """Call Sumo, search for surfaces matching input arguments, return list of surfaces"""
@@ -50,7 +50,8 @@ class _Sumo:
         hits = [hit for hit in response.get("hits").get("hits")]
         # print(hits)
         cases_and_ids = [
-            (hit.get("_source").get("fmu").get("case"), hit.get("_id")) for hit in hits
+            {"case": hit.get("_source").get("fmu").get("case"), "id": hit.get("_id")}
+            for hit in hits
         ]
         return cases_and_ids
 
@@ -59,7 +60,6 @@ class _Sumo:
         Get list of available for a given case(parent) and content on Sumo.
         Return list of tuples (fmu_submodule, fmu_submodule)
         """
-
         url = (
             f"{self.api.base_url}/search?"
             # f"$query=class:surface AND "
@@ -158,15 +158,11 @@ class _Sumo:
         response = self.api.callAzureApi.get_json(url=url)
         hits = [hit for hit in response.get("hits").get("hits")]
         if len(hits) == 1:
-            object_id = hits[0].get("_source").get("_sumo").get("blob_url")
-        print(object_id)
+            object_id = hits[0].get("_id")
         bytestring = self.api.get_blob(object_id)
-
-        self.api.callAzureApi.get_content(object_id, None)
         surface = xtgeo.RegularSurface().from_file(
             io.BytesIO(bytestring), fformat="irap_binary"
         )
-
         return surface
 
     def get_metadata(self, object_id):
@@ -185,24 +181,24 @@ class _Sumo:
         print("====")
 
 
-api = CallSumoApi(env="fmu")
-s = _Sumo(api)
-
-case_id = s.get_cases()[0][1]
-iterations = s.get_iterations(case_id)
-contents = s.get_contents(case_id, iterations[0])
-for iteration in iterations:
-    print(iteration)
-    print(s.get_contents(case_id, iteration))
-surfaces = s.get_surfaces(case_id, iteration=iterations[0], content=contents[0])
-reals = s.get_realizations(
-    case_id, iteration=iterations[0], content=contents[0], surface=surfaces[0]
-)
-surface = s.get_surface(
-    case_id,
-    iteration=iterations[0],
-    content=contents[0],
-    surface=surfaces[0],
-    realization=reals[0],
-)
-print(surface)
+# api = CallSumoApi(env="fmu")
+# s = _Sumo(api)
+# s.api.get_bearer_token()
+# case_id = s.get_cases()[0][1]
+# iterations = s.get_iterations(case_id)
+# contents = s.get_contents(case_id, iterations[0])
+# for iteration in iterations:
+#     print(iteration)
+#     print(s.get_contents(case_id, iteration))
+# surfaces = s.get_surfaces(case_id, iteration=iterations[0], content=contents[0])
+# reals = s.get_realizations(
+#     case_id, iteration=iterations[0], content=contents[0], surface=surfaces[0]
+# )
+# surface = s.get_surface(
+#     case_id,
+#     iteration=iterations[0],
+#     content=contents[0],
+#     surface=surfaces[0],
+#     realization=reals[0],
+# )
+# print(surface)

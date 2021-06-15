@@ -48,6 +48,7 @@ from ._running_time_analysis_fmu import RunningTimeAnalysisFMU
 from ._segy_viewer import SegyViewer
 from ._subsurface_map import SubsurfaceMap
 from ._surface_viewer_fmu import SurfaceViewerFMU
+from ._surface_viewer_sumo.surface_viewer_sumo import SurfaceViewerSumo
 from ._surface_with_grid_cross_section import SurfaceWithGridCrossSection
 from ._surface_with_seismic_cross_section import SurfaceWithSeismicCrossSection
 from ._structural_uncertainty import StructuralUncertainty

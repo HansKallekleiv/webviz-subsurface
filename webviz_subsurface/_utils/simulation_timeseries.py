@@ -316,9 +316,9 @@ def check_and_format_observations(obsfile: Path) -> dict:
             )
 
             if hasattr(excep, "problem_mark"):
+                problem = getattr(excep, "problem_mark")
                 extra_info += (
-                    "The typo is probably somewhere around "
-                    f"line {excep.problem_mark.line + 1}."
+                    "The typo is probably somewhere around " f"line {problem.line + 1}."
                 )
 
             raise type(excep)(
