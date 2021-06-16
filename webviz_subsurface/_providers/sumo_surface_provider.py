@@ -143,9 +143,7 @@ class SumoSurfaceProvider:
             if hit.get("_source").get("fmu").get("realization") is not None
         ]
 
-    def get_surface(self, parent, iteration, content, surface, realization):
-        """Get a specific surface from Sumo by its object_id,
-        return as xtgeo.RegularSurface object"""
+    def get_surface_object(self, parent, iteration, content, surface, realization):
         url = (
             f"{self.api.base_url}/search?"
             f"$query=class:surface AND "
@@ -157,12 +155,22 @@ class SumoSurfaceProvider:
         )
         response = self.api.callAzureApi.get_json(url=url)
         hits = [hit for hit in response.get("hits").get("hits")]
-        if len(hits) == 1:
-            object_id = hits[0].get("_id")
+        if len(hits) != 1:
+            raise KeyError("Request did not return a unique object")
+        return hits[0]
+
+    def get_surface(self, parent, iteration, content, surface, realization):
+        """Get a specific surface from Sumo by its object_id,
+        return as xtgeo.RegularSurface object"""
+        hit = self.get_surface_object(parent, iteration, content, surface, realization)
+        object_id = hit.get("_id")
         bytestring = self.api.get_blob(object_id)
         surface = xtgeo.RegularSurface().from_file(
             io.BytesIO(bytestring), fformat="irap_binary"
         )
+        import json
+
+        # print(json.dumps(hit, indent=4))
         return surface
 
     def get_metadata(self, object_id):
