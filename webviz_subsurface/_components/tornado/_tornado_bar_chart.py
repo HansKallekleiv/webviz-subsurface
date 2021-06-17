@@ -1,11 +1,15 @@
 from typing import Optional, List, Dict, Any
 
+
+import plotly.graph_objects as go
 from webviz_subsurface._abbreviations.number_formatting import si_prefixed
 from webviz_subsurface._utils.formatting import printable_int_list
 from ._tornado_data import TornadoData
 
 
 class TornadoBarChart:
+    """Creates a plotly bar figure from a TornadoData instance"""
+
     # pylint: disable=too-many-arguments
     def __init__(
         self,
@@ -17,7 +21,7 @@ class TornadoBarChart:
         number_format: str = "",
         unit: str = "",
         spaced: bool = True,
-        use_true=False,
+        use_true_base: bool = False,
     ) -> None:
         self._tornadotable = tornado_data.tornadotable
         self._reference_average = tornado_data.reference_average
@@ -28,7 +32,7 @@ class TornadoBarChart:
         self._locked_si_prefix = locked_si_prefix
         self._locked_si_prefix_relative: Optional[int]
         self._scale = tornado_data.scale
-        self._use_true = use_true
+        self._use_true_base = use_true_base
         if self._scale == "Percentage":
             self._unit_x = "%"
             self._locked_si_prefix_relative = 0
@@ -78,7 +82,7 @@ class TornadoBarChart:
                 x=self._tornadotable["low"],
                 name="low",
                 base=self._tornadotable["low_base"]
-                if not self._use_true
+                if not self._use_true_base
                 else self._reference_average,
                 customdata=self._tornadotable["low_reals"],
                 text=[
@@ -109,7 +113,7 @@ class TornadoBarChart:
                 x=self._tornadotable["high"],
                 name="high",
                 base=self._tornadotable["high_base"]
-                if not self._use_true
+                if not self._use_true_base
                 else self._reference_average,
                 customdata=self._tornadotable["high_reals"],
                 text=[
@@ -138,7 +142,7 @@ class TornadoBarChart:
 
     @property
     def layout(self) -> Dict:
-        _layout: Dict[str, Any] = {}
+        _layout: Dict[str, Any] = go.Layout()
         _layout.update(self._plotly_theme["layout"])
         _layout.update(
             {
@@ -167,20 +171,26 @@ class TornadoBarChart:
                 "hovermode": "y",
                 "annotations": [
                     {
-                        "x": 0 if not self._use_true else self._reference_average,
-                        "y": len(list(self._tornadotable["low"])) - 0.5,
+                        "x": 0 if not self._use_true_base else self._reference_average,
+                        "y": 1.05,
                         "xref": "x",
-                        "yref": "y",
+                        "yref": "paper",
                         "text": f"Reference avg: "
                         f"{self._set_si_prefix(self._reference_average)}",
-                        "showarrow": True,
+                        "showarrow": False,
                         "align": "center",
-                        "arrowhead": 2,
-                        "arrowsize": 1,
-                        "arrowwidth": 1,
-                        "arrowcolor": "#636363",
-                        "ax": 20,
-                        "ay": -25,
+                    }
+                ],
+                "shapes": [
+                    {
+                        "type": "line",
+                        "line": {"width": 3, "color": "lightgrey"},
+                        "x0": 0 if not self._use_true_base else self._reference_average,
+                        "x1": 0 if not self._use_true_base else self._reference_average,
+                        "y0": 0,
+                        "y1": 1,
+                        "xref": "x",
+                        "yref": "y domain",
                     }
                 ],
             }
@@ -189,4 +199,4 @@ class TornadoBarChart:
 
     @property
     def figure(self) -> Dict:
-        return {"data": self.data, "layout": self.layout}
+        return go.Figure({"data": self.data, "layout": self.layout})

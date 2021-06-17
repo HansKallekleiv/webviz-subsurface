@@ -443,7 +443,7 @@ def distribution_controllers(
                     figure_height=700,
                     show_labels=selections["labeloptions"] != "hide",
                     number_format="#.3g",
-                    use_true=use_true,
+                    use_true_base=use_true,
                 ).figure
             )
 
@@ -454,10 +454,7 @@ def distribution_controllers(
                 gridcolor="whitesmoke",
                 showgrid=True,
                 side="bottom",
-            ).add_vline(
-                x=0 if not use_true else tornado_data.reference_average,
-                line_width=3,
-                line_color="lightgrey",
+            
             ).update_yaxes(
                 tickfont_size=15
             ).update_layout(
@@ -467,8 +464,6 @@ def distribution_controllers(
                     font=dict(size=18),
                 ),
                 margin={"t": 70},
-            ).for_each_annotation(
-                lambda a: a.update(showarrow=False, yref="paper", y=1.05)
             )
 
             if selections["labeloptions"] == "simple":
