@@ -9,6 +9,8 @@ from webviz_subsurface._models import InplaceVolumesModel
 from .filter_view import filter_layout
 from .distribution_main_layout import distributions_main_layout
 from .selections_view import selections_layout
+from .tornado_selections_view import tornado_selections_layout
+from .tornado_layout import tornado_main_layout
 
 
 def main_view(
@@ -20,6 +22,7 @@ def main_view(
     tabs = [
         make_tab(
             label="Inplace distributions",
+            id_value="voldist",
             children=tab_view_layout(
                 main_layout=distributions_main_layout(
                     uuid=get_uuid("main-voldist"), volumemodel=volumemodel
@@ -29,7 +32,8 @@ def main_view(
                         "open": True,
                         "children": [
                             selections_layout(
-                                uuid=get_uuid("selections-voldist"),
+                                uuid=get_uuid("selections"),
+                                tab="voldist",
                                 volumemodel=volumemodel,
                                 theme=theme,
                             )
@@ -39,13 +43,9 @@ def main_view(
                         "open": True,
                         "children": [
                             filter_layout(
-                                uuid=get_uuid("filter-voldist"),
+                                uuid=get_uuid("filters"),
+                                tab="voldist",
                                 volumemodel=volumemodel,
-                                filters=[
-                                    x
-                                    for x in volumemodel.selectors
-                                    if x not in ["REAL"]
-                                ],
                             )
                         ],
                     },
@@ -54,6 +54,7 @@ def main_view(
         ),
         make_tab(
             label="Source comparison",
+            id_value="src-comp",
             children=tab_view_layout(
                 main_layout=[
                     html.Div(
@@ -71,7 +72,8 @@ def main_view(
                         "open": True,
                         "children": [
                             filter_layout(
-                                uuid=get_uuid("filter-source-comp"),
+                                uuid=get_uuid("filters"),
+                                tab="src-comp",
                                 volumemodel=volumemodel,
                             )
                         ],
@@ -81,6 +83,7 @@ def main_view(
         ),
         make_tab(
             label="Ensemble comparison",
+            id_value="ens-comp",
             children=tab_view_layout(
                 main_layout=[
                     html.Div(
@@ -98,7 +101,8 @@ def main_view(
                         "open": True,
                         "children": [
                             filter_layout(
-                                uuid=get_uuid("filter-ensemble-comp"),
+                                uuid=get_uuid("filters"),
+                                tab="ens-comp",
                                 volumemodel=volumemodel,
                             )
                         ],
@@ -112,25 +116,42 @@ def main_view(
         tabs.append(
             make_tab(
                 label="Tornadoplots",
+                id_value="tornado",
                 children=tab_view_layout(
-                    main_layout=[
-                        html.Div(
-                            "Under development - page for visualizing tornado plots "
-                            "and tables from sensitivity runs",
-                            style={"margin": "50px", "font-size": "20px"},
-                        )
-                    ],
+                    main_layout=tornado_main_layout(
+                        uuid=get_uuid("main-tornado"),
+                    ),
                     selections_details=OrderedDict(
                         Selections={
                             "open": True,
-                            "children": [],
+                            "children": [
+                                tornado_selections_layout(
+                                    uuid=get_uuid("selections"),
+                                    tab="tornado",
+                                    volumemodel=volumemodel,
+                                    theme=theme,
+                                )
+                            ],
                         },
                         Filters={
                             "open": True,
                             "children": [
                                 filter_layout(
-                                    uuid=get_uuid("filter-tornado"),
+                                    uuid=get_uuid("filters"),
+                                    tab="tornado",
                                     volumemodel=volumemodel,
+                                    filters=[
+                                        x
+                                        for x in volumemodel.selectors
+                                        if x
+                                        not in [
+                                            "SENSCASE",
+                                            "SENSNAME",
+                                            "SENSTYPE",
+                                            "REAL",
+                                            "FLUID_ZONE",
+                                        ]
+                                    ],
                                 )
                             ],
                         },
@@ -140,13 +161,15 @@ def main_view(
         )
 
     return dcc.Tabs(
+        id=get_uuid("tabs"),
+        value="voldist",
         style={"width": "100%"},
         persistence=True,
         children=tabs,
     )
 
 
-def make_tab(label: str, children: list) -> dcc.Tab:
+def make_tab(label: str, id_value: str, children: list) -> dcc.Tab:
     tab_style = {
         "borderBottom": "1px solid #d6d6d6",
         "padding": "6px",
@@ -162,6 +185,7 @@ def make_tab(label: str, children: list) -> dcc.Tab:
     }
     return dcc.Tab(
         label=label,
+        value=id_value,
         style=tab_style,
         selected_style=tab_selected_style,
         children=children,

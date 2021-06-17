@@ -7,25 +7,30 @@ from webviz_subsurface._models import InplaceVolumesModel
 
 
 def filter_layout(
-    uuid: str, volumemodel: InplaceVolumesModel, filters: Optional[list] = None
+    uuid: str,
+    volumemodel: InplaceVolumesModel,
+    filters: Optional[list] = None,
+    tab="None",
 ) -> html.Div:
     """Layout for selecting intersection data"""
     return html.Div(
         children=[
-            filter_dropdowns(uuid=uuid, volumemodel=volumemodel, filters=filters),
-            realization_filters(
-                uuid=uuid,
+            filter_dropdowns(
+                uuid=uuid, tab=tab, volumemodel=volumemodel, filters=filters
             ),
+            realization_filters(uuid=uuid, tab=tab, volumemodel=volumemodel),
         ]
     )
 
 
 def filter_dropdowns(
-    uuid: str, volumemodel: InplaceVolumesModel, filters: Optional[list] = None
+    uuid: str, volumemodel: InplaceVolumesModel, tab, filters: Optional[list] = None
 ) -> html.Div:
     """Makes dropdowns for each selector"""
     dropdowns: List[html.Div] = []
     filters = filters if filters is not None else volumemodel.selectors
+    if "REAL" in filters:
+        filters.remove("REAL")
     for selector in filters:
         elements = list(volumemodel.dataframe[selector].unique())
 
@@ -39,7 +44,7 @@ def filter_dropdowns(
                             selector.lower().capitalize(), style={"font-weight": "bold"}
                         ),
                         wcc.Select(
-                            id={"id": uuid, "selector": selector},
+                            id={"id": uuid, "tab": tab, "selector": selector},
                             options=[{"label": i, "value": i} for i in elements],
                             value=elements,
                             multi=True,
@@ -54,25 +59,28 @@ def filter_dropdowns(
     return html.Div(dropdowns)
 
 
-def realization_filters(uuid: str) -> html.Div:
-
+def realization_filters(uuid: str, tab, volumemodel) -> html.Div:
+    reals = volumemodel.realizations
     return html.Div(
         style={"margin-top": "15px"},
         children=[
             html.Div(
                 style={"display": "inline-flex"},
                 children=[
-                    html.Span("Realizations:", style={"font-weight": "bold"}),
                     html.Span(
-                        "selected_reals",
-                        id={"id": uuid, "element": "text_selected_reals"},
+                        "Realizations: ",
+                        style={"font-weight": "bold"},
+                    ),
+                    html.Span(
+                        id={"id": uuid, "tab": tab, "element": "real_text"},
                         style={"margin-left": "10px"},
+                        children=f"{min(reals)}-{max(reals)}",
                     ),
                 ],
             ),
             html.Div(
                 children=dcc.RadioItems(
-                    id={"id": uuid, "element": "real-selector-option"},
+                    id={"id": uuid, "tab": tab, "element": "real-selector-option"},
                     options=[
                         {"label": "Range", "value": "range"},
                         {"label": "Select", "value": "select"},
@@ -85,7 +93,26 @@ def realization_filters(uuid: str) -> html.Div:
                 ),
             ),
             html.Div(
-                id={"id": uuid, "element": "real-slider-wrapper"},
+                id={"id": uuid, "tab": tab, "element": "real-slider-wrapper"},
+                children=dcc.RangeSlider(
+                    id={
+                        "id": uuid,
+                        "tab": tab,
+                        "component_type": "range",
+                    },
+                    value=[min(reals), max(reals)],
+                    min=min(reals),
+                    max=max(reals),
+                    marks={str(i): {"label": str(i)} for i in [min(reals), max(reals)]},
+                ),
+            ),
+            html.Div(
+                style={"display": "none"},
+                children=wcc.Select(
+                    id={"id": uuid, "tab": tab, "selector": "REAL"},
+                    options=[{"label": i, "value": i} for i in reals],
+                    value=reals,
+                ),
             ),
         ],
     )

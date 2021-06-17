@@ -10,7 +10,10 @@ import dash_html_components as html
 import dash_table
 import plotly.express as px
 import plotly.graph_objects as go
-
+import webviz_core_components as wcc
+from webviz_subsurface._components.tornado._tornado_data import TornadoData
+from webviz_subsurface._components.tornado._tornado_bar_chart import TornadoBarChart
+from webviz_subsurface._components.tornado._tornado_table import TornadoTable
 from webviz_subsurface._models import InplaceVolumesModel
 from webviz_subsurface._abbreviations.volume_terminology import (
     volume_description,
@@ -21,7 +24,7 @@ from ..figures import create_figure
 
 # pylint: disable=too-many-statements, too-many-locals, too-many-branches
 def distribution_controllers(
-    app: dash.Dash, get_uuid: Callable, volumemodel: InplaceVolumesModel
+    app: dash.Dash, get_uuid: Callable, volumemodel: InplaceVolumesModel, theme
 ) -> None:
     @app.callback(
         Output(
@@ -31,11 +34,11 @@ def distribution_controllers(
             {"id": get_uuid("main-voldist"), "wrapper": "table", "page": ALL},
             "children",
         ),
-        Input(get_uuid("selections-voldist"), "data"),
+        Input(get_uuid("selections"), "data"),
         Input(
             {"id": get_uuid("main-voldist"), "element": "plot-table-select"}, "value"
         ),
-        State(get_uuid("page-selected-voldist"), "data"),
+        State(get_uuid("page-selected"), "data"),
         State({"id": get_uuid("main-voldist"), "element": "graph", "page": ALL}, "id"),
         State(
             {"id": get_uuid("main-voldist"), "wrapper": "table", "page": ALL},
@@ -66,8 +69,8 @@ def distribution_controllers(
         if not initial_callback and not table_clicked:
             if not selections["update"]:
                 raise PreventUpdate
-
-        groups = ["ENSEMBLE", "REAL"]
+        print("running_fig")
+        groups = ["REAL"]
         parameters = []
         responses = []
         for item in ["Subplots", "Color by", "X Response", "Y Response"]:
@@ -88,26 +91,18 @@ def distribution_controllers(
                 ):
                     responses.append(selections[item])
 
-        dframe = volumemodel.dataframe.copy()
-
-        if parameters:
-            columns = parameters + ["REAL", "ENSEMBLE"]
-            dframe = pd.merge(
-                dframe, volumemodel.parameter_df[columns], on=["REAL", "ENSEMBLE"]
-            )
-        dframe = filter_df(dframe, selections["filters"])
-
-        # Need to sum volume columns and take the average of property columns
-        aggregations = {x: "sum" for x in volumemodel.volume_columns}
-        aggregations.update({x: "mean" for x in parameters})
-
-        df_for_figure = dframe.groupby(groups).agg(aggregations).reset_index()
-        df_for_figure = volumemodel.compute_property_columns(df_for_figure)
+        df_for_figure = volumemodel.get_df(
+            filters=selections["filters"], groups=groups, parameters=parameters
+        )
 
         if not (plot_table_select == "table" and page_selected == "custom"):
             figure = create_figure(
                 plot_type=selections["Plot type"],
-                data_frame=df_for_figure,
+                data_frame=df_for_figure.groupby([x for x in groups if x != "REAL"])
+                .mean()
+                .reset_index()
+                if selections["Plot type"] == "bar" and groups != ["REAL"]
+                else df_for_figure,
                 x=selections["X Response"],
                 y=selections["Y Response"],
                 nbins=selections["hist_bins"],
@@ -150,10 +145,11 @@ def distribution_controllers(
                     table_groups.extend(
                         [x for x in selections["Group by"] if x not in table_groups]
                     )
-                df_for_table = (
-                    dframe.groupby(table_groups).agg(aggregations).reset_index()
+                df_for_table = volumemodel.get_df(
+                    filters=selections["filters"],
+                    groups=table_groups,
+                    parameters=parameters,
                 )
-                df_for_table = volumemodel.compute_property_columns(df_for_table)
 
                 responses = selections["table_responses"]
                 groups = selections["Group by"]
@@ -195,8 +191,8 @@ def distribution_controllers(
             },
             "figure",
         ),
-        Input(get_uuid("selections-voldist"), "data"),
-        State(get_uuid("page-selected-voldist"), "data"),
+        Input(get_uuid("selections"), "data"),
+        State(get_uuid("page-selected"), "data"),
         State(
             {
                 "id": get_uuid("main-voldist"),
@@ -234,24 +230,10 @@ def distribution_controllers(
             if not selections["update"]:
                 raise PreventUpdate
 
-        dframe = volumemodel.dataframe.copy()
-        dframe = filter_df(dframe, selections["filters"])
-
         figs = {}
         for selector in [x["selector"] for x in figure_ids]:
-            groups = ["ENSEMBLE", "REAL"]
-
-            groups.append(selector)
-
-            aggregations = {x: "sum" for x in volumemodel.volume_columns}
-            df_group = dframe.groupby(groups).agg(aggregations).reset_index()
-            df_group = volumemodel.compute_property_columns(df_group)
-
-            # find mean over realizations
-            df_merged = (
-                df_group.groupby([x for x in groups if x != "REAL"])
-                .mean()
-                .reset_index()
+            dframe = volumemodel.get_df(
+                filters=selections["filters"], groups=[selector]
             )
             texttemplate = (
                 "%{text:.3s}"
@@ -262,7 +244,7 @@ def distribution_controllers(
             figs[selector] = {
                 "pie": create_figure(
                     plot_type="pie",
-                    data_frame=df_merged,
+                    data_frame=dframe,
                     values=selections["X Response"],
                     names=selector,
                     title=f"{selections['X Response']} per {selector}",
@@ -273,7 +255,7 @@ def distribution_controllers(
                 .update_layout(margin=dict(l=10, b=10)),
                 "bar": create_figure(
                     plot_type="bar",
-                    data_frame=df_merged,
+                    data_frame=dframe,
                     x=selector,
                     y=selections["X Response"],
                     color_discrete_sequence=px.colors.diverging.BrBG_r,
@@ -297,8 +279,8 @@ def distribution_controllers(
             {"id": get_uuid("main-voldist"), "element": "plot", "page": "conv"},
             "figure",
         ),
-        Input(get_uuid("selections-voldist"), "data"),
-        State(get_uuid("page-selected-voldist"), "data"),
+        Input(get_uuid("selections"), "data"),
+        State(get_uuid("page-selected"), "data"),
         State(
             {"id": get_uuid("main-voldist"), "element": "plot", "page": "conv"},
             "figure",
@@ -317,18 +299,13 @@ def distribution_controllers(
             if not selections["update"]:
                 raise PreventUpdate
 
-        dframe = volumemodel.dataframe.copy()
-        dframe = filter_df(dframe, selections["filters"])
-
         subplots = selections["Subplots"] if selections["Subplots"] is not None else []
-        groups = ["ENSEMBLE", "REAL"]
+        groups = ["REAL"]
         if subplots and subplots not in groups:
             groups.append(subplots)
 
-        aggregations = {x: "sum" for x in volumemodel.volume_columns}
-        dframe = dframe.groupby(groups).agg(aggregations).reset_index()
-        dframe = volumemodel.compute_property_columns(dframe)
-        dframe = dframe.sort_values(by=["ENSEMBLE", "REAL"])
+        dframe = volumemodel.get_df(filters=selections["filters"], groups=groups)
+        dframe = dframe.sort_values(by=["REAL"])
 
         dfs = []
         df_groups = dframe.groupby(subplots) if subplots else [(None, dframe)]
@@ -377,6 +354,178 @@ def distribution_controllers(
                 figure.update_yaxes(dict(matches=None))
         return figure
 
+    @app.callback(
+        Output(
+            {
+                "id": get_uuid("main-tornado"),
+                "element": "bulktornado",
+                "page": "tornado",
+            },
+            "figure",
+        ),
+        Output(
+            {
+                "id": get_uuid("main-tornado"),
+                "element": "inplacetornado",
+                "page": "tornado",
+            },
+            "figure",
+        ),
+        Output(
+            {
+                "id": get_uuid("main-tornado"),
+                "wrapper": "table",
+                "page": "tornado",
+            },
+            "children",
+        ),
+        Input(get_uuid("selections"), "data"),
+        State(get_uuid("page-selected"), "data"),
+        State(
+            {
+                "id": get_uuid("main-tornado"),
+                "element": "bulktornado",
+                "page": "tornado",
+            },
+            "figure",
+        ),
+    )
+    def _update_tornado_plots(
+        selections: dict, page_selected: str, figure: go.Figure
+    ) -> go.Figure:
+
+        if page_selected != "tornado":
+            raise PreventUpdate
+
+        selections = selections[page_selected]
+        initial_callback = figure is None
+        if not initial_callback:
+            if not selections["update"]:
+                raise PreventUpdate
+
+        filters = {key: value for key, value in selections["filters"].items()}
+
+        figures = []
+        tables = []
+        for x in ["BULK", selections["Volume response"]]:
+
+            sensfilter = (
+                selections["Bulk sensitivities"]
+                if x == "BULK"
+                else selections["Volume sensitivities"]
+            )
+            if selections["Reference"] not in sensfilter:
+                sensfilter.append(selections["Reference"])
+
+            # filter on correct fluid zone depending on chosen volume response
+            fluid_filter = [
+                "oil" if selections["Volume response"] == "STOIIP" else "gas"
+            ]
+            filters.update(
+                SENSNAME=sensfilter,
+                FLUID_ZONE=fluid_filter,
+            )
+
+            groups = ["REAL", "ENSEMBLE", "SENSNAME", "SENSCASE", "SENSTYPE"]
+            df_for_tornado = volumemodel.get_df(filters=filters, groups=groups)
+            df_for_tornado.rename(columns={x: "VALUE"}, inplace=True)
+            use_true = selections["Scale"] == "True"
+            tornado_data = TornadoData(
+                dframe=df_for_tornado,
+                reference=selections["Reference"],
+                scale=selections["Scale"],
+                cutbyref=bool(selections["Remove no impact"]),
+            )
+            figure = go.Figure(
+                TornadoBarChart(
+                    tornado_data=tornado_data,
+                    plotly_theme=theme.plotly_theme,
+                    figure_height=700,
+                    show_labels=selections["labeloptions"] != "hide",
+                    number_format="#.3g",
+                    use_true=use_true,
+                ).figure
+            )
+
+            figure.update_xaxes(
+                tickfont_size=15,
+                title_font_size=18,
+                gridwidth=1,
+                gridcolor="whitesmoke",
+                showgrid=True,
+                side="bottom",
+            ).add_vline(
+                x=0 if not use_true else tornado_data.reference_average,
+                line_width=3,
+                line_color="lightgrey",
+            ).update_yaxes(
+                tickfont_size=15
+            ).update_layout(
+                title=dict(
+                    text=f"Tornadoplot for {x} "
+                    + (f"({fluid_filter[0]})" if x == "BULK" else ""),
+                    font=dict(size=18),
+                ),
+                margin={"t": 70},
+            ).for_each_annotation(
+                lambda a: a.update(showarrow=False, yref="paper", y=1.05)
+            )
+
+            if selections["labeloptions"] == "simple":
+                figure.update_traces(
+                    texttemplate="%{x:.1f}%"
+                    if selections["Scale"] == "Percentage"
+                    else "%{x:.4s}",
+                    insidetextanchor="end",
+                    hoverinfo="none",
+                )
+
+            figures.append(figure)
+            tables.append(TornadoTable(tornado_data=tornado_data))
+
+        return (
+            figures[0],
+            figures[1],
+            html.Div(
+                children=[
+                    html.Div(
+                        style={"margin-bottom": "30px"},
+                        children=create_data_table(
+                            volumemodel=volumemodel,
+                            columns=create_table_columns(
+                                columns=TornadoTable.COLUMNS,
+                                format_columns=[
+                                    x
+                                    for x in TornadoTable.COLUMNS
+                                    if x
+                                    not in ["Sensitivity", "Low reals", "High reals"]
+                                ],
+                                use_si_format=True,
+                            ),
+                            data=tables[1].as_plotly_table,
+                            height="22vh",
+                            table_id={"table_id": f"{page_selected}-bulk"},
+                        ),
+                    ),
+                    create_data_table(
+                        volumemodel=volumemodel,
+                        columns=create_table_columns(
+                            columns=TornadoTable.COLUMNS,
+                            format_columns=[
+                                x
+                                for x in TornadoTable.COLUMNS
+                                if x not in ["Sensitivity", "Low reals", "High reals"]
+                            ],
+                            use_si_format=True,
+                        ),
+                        data=tables[0].as_plotly_table,
+                        height="22vh",
+                        table_id={"table_id": f"{page_selected}-inplace"},
+                    ),
+                ]
+            ),
+        )
+
 
 # pylint: disable=too-many-locals
 def make_table_wrapper_children(
@@ -420,8 +569,10 @@ def make_table_wrapper_children(
                     "Minimum": values.min(),
                     "Maximum": values.max(),
                 }
-                if "FLUID" not in groups:
-                    data.update(FLUID=(" + ").join(selections["filters"]["FLUID"]))
+                if "FLUID_ZONE" not in groups:
+                    data.update(
+                        FLUID_ZONE=(" + ").join(selections["filters"]["FLUID_ZONE"])
+                    )
 
                 for idx, group in enumerate(groups):
                     data[group] = (
@@ -447,30 +598,32 @@ def make_table_wrapper_children(
                         volumemodel=volumemodel,
                         columns=create_table_columns(
                             columns=["Response"]
-                            + [x for x in groups if x != "FLUID"]
+                            + [x for x in groups if x != "FLUID_ZONE"]
                             + statcols
-                            + ["FLUID"],
+                            + ["FLUID_ZONE"],
                             format_columns=statcols,
                             volumemodel=volumemodel,
                             use_si_format=True,
                         ),
                         data=data_volcols,
                         height=height,
+                        table_id={"table_id": f"{page_selected}-responses"},
                     ),
                 ),
                 create_data_table(
                     volumemodel=volumemodel,
                     columns=create_table_columns(
                         columns=["Property"]
-                        + [x for x in groups if x != "FLUID"]
+                        + [x for x in groups if x != "FLUID_ZONE"]
                         + statcols
-                        + ["FLUID"],
+                        + ["FLUID_ZONE"],
                         format_columns=statcols,
                         volumemodel=volumemodel,
                         use_si_format=False,
                     ),
                     data=data_properties,
                     height=height,
+                    table_id={"table_id": f"{page_selected}-properties"},
                 ),
             ]
         )
@@ -483,10 +636,10 @@ def make_table_wrapper_children(
         else dframe[responses].mean().to_frame().T
     )
 
-    if "FLUID" not in dframe:
-        dframe["FLUID"] = (" + ").join(selections["filters"]["FLUID"])
+    if "FLUID_ZONE" not in dframe:
+        dframe["FLUID_ZONE"] = (" + ").join(selections["filters"]["FLUID_ZONE"])
 
-    dframe = dframe[[x for x in dframe.columns if x != "FLUID"] + ["FLUID"]]
+    dframe = dframe[[x for x in dframe.columns if x != "FLUID_ZONE"] + ["FLUID_ZONE"]]
     return html.Div(
         children=[
             create_data_table(
@@ -498,23 +651,20 @@ def make_table_wrapper_children(
                 ),
                 data=dframe.iloc[::-1].to_dict("records"),
                 height="88vh" if page_selected == "custom" else "44vh",
+                table_id={"table_id": f"{page_selected}-meantable"},
             )
         ]
     )
 
 
-def filter_df(dframe: pd.DataFrame, filters: dict) -> pd.DataFrame:
-    for filt, values in filters.items():
-        dframe = dframe.loc[dframe[filt].isin(values)]
-    return dframe
-
-
 def create_table_columns(
     columns: list,
-    format_columns: list,
-    volumemodel: InplaceVolumesModel,
-    use_si_format: bool = None,
+    volumemodel: Optional[InplaceVolumesModel] = None,
+    format_columns: Optional[list] = None,
+    use_si_format: Optional[bool] = None,
 ) -> List[dict]:
+
+    format_columns = format_columns if format_columns is not None else []
 
     table_columns = []
     for col in columns:
@@ -524,7 +674,9 @@ def create_table_columns(
                 {
                     "type": "numeric",
                     "format": {"locale": {"symbol": ["", ""]}, "specifier": "$.4s"}
-                    if col in volumemodel.volume_columns or use_si_format
+                    if use_si_format
+                    or volumemodel is not None
+                    and col in volumemodel.volume_columns
                     else Format(precision=3),
                 }
             )
@@ -538,6 +690,7 @@ def create_data_table(
     columns: list,
     height: str,
     data: Optional[list],
+    table_id,
 ) -> dash_table.DataTable:
 
     if not data:
@@ -545,47 +698,67 @@ def create_data_table(
 
     style_cell_conditional = [
         {"if": {"column_id": c}, "textAlign": "left"}
-        for c in [x for x in volumemodel.selectors if x != "FLUID"]
-        + ["Response", "Property"]
+        for c in [x for x in volumemodel.selectors if x != "FLUID_ZONE"]
+        + ["Response", "Property", "Sensitivity"]
     ]
     style_cell_conditional.extend(
         [
-            {"if": {"column_id": c}, "width": "15%"}
-            for c in volumemodel.selectors + ["Response", "Property"]
+            {"if": {"column_id": c}, "width": "10%"}
+            for c in volumemodel.selectors + ["Response", "Property", "Sensitivity"]
         ]
     )
     style_data_conditional = [
         {
-            "if": {"filter_query": "{FLUID} = " + f"'{fluid}'", "column_id": "FLUID"},
+            "if": {
+                "filter_query": "{FLUID_ZONE} = " + f"'{fluid}'",
+                "column_id": "FLUID_ZONE",
+            },
             "backgroundColor": color,
         }
         for fluid, color in fluid_colors().items()
+    ] + [
+        {
+            "if": {
+                "filter_query": "{FLUID_ZONE} contains '+'",
+                "column_id": "FLUID_ZONE",
+            },
+            "backgroundColor": "#E8E8E8",
+        }
     ]
 
-    return dash_table.DataTable(
-        sort_action="native",
-        sort_mode="multi",
-        filter_action="native",
-        columns=columns,
-        data=data,
-        style_cell_conditional=style_cell_conditional,
-        style_data_conditional=style_data_conditional,
-        style_table={
-            "height": height,
-            "overflowY": "auto",
-        },
+    return wcc.WebvizPluginPlaceholder(
+        id={"request": "table_data", "table_id": table_id["table_id"]},
+        buttons=["expand", "download"],
+        children=dash_table.DataTable(
+            id=table_id,
+            sort_action="native",
+            sort_mode="multi",
+            filter_action="native",
+            columns=columns,
+            data=data,
+            style_cell_conditional=style_cell_conditional,
+            style_data_conditional=style_data_conditional,
+            style_table={
+                "height": height,
+                "overflowY": "auto",
+            },
+        ),
     )
 
 
 def fluid_colors() -> dict:
-    return {"oil": "#c6ebd9", "gas": "#ffcccc", "oil + gas": "#E8E8E8"}
+    return {
+        "oil": "#c6ebd9",
+        "gas": "#ffcccc",
+        "water": "#ADD8E6",
+    }
 
 
 def fluid_annotation(selections: dict) -> dict:
-    fluid_text = (" + ").join(selections["filters"]["FLUID"])
+    fluid_text = (" + ").join(selections["filters"]["FLUID_ZONE"])
     return dict(
         visible=bool(selections["Fluid annotation"])
-        and selections["Subplots"] != "FLUID",
+        and selections["Subplots"] != "FLUID_ZONE",
         x=1,
         y=1,
         xref="paper",
@@ -593,5 +766,5 @@ def fluid_annotation(selections: dict) -> dict:
         showarrow=False,
         text="Fluid zone<br>" + fluid_text,
         font=dict(size=15, color="black"),
-        bgcolor=fluid_colors()[fluid_text],
+        bgcolor=fluid_colors().get(fluid_text, "#E8E8E8"),
     )

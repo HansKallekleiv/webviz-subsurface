@@ -10,6 +10,7 @@ def selections_layout(
     uuid: str,
     volumemodel: InplaceVolumesModel,
     theme: WebvizConfigTheme,
+    tab="None",
 ) -> html.Div:
     """Layout for selecting intersection data"""
     selectors = "/".join(
@@ -21,14 +22,18 @@ def selections_layout(
             button(uuid=uuid, title=f"Plots per {selectors}", page_id="per_zr"),
             button(uuid=uuid, title="Convergence plot mean/p10/p90", page_id="conv"),
             button(uuid=uuid, title="Custom plotting", page_id="custom"),
-            plot_selections_layout(uuid, volumemodel),
-            table_selections_layout(uuid, volumemodel),
-            settings_layout(uuid, theme),
+            plot_selections_layout(uuid, volumemodel, tab),
+            table_selections_layout(uuid, volumemodel, tab),
+            settings_layout(uuid, theme, tab),
         ]
     )
 
 
-def button(uuid: str, title: str, page_id: str) -> html.Button:
+def button(
+    uuid: str,
+    title: str,
+    page_id: str,
+) -> html.Button:
     return html.Button(
         title,
         className="webviz-inplace-vol-btn",
@@ -36,28 +41,9 @@ def button(uuid: str, title: str, page_id: str) -> html.Button:
     )
 
 
-def source_selector(uuid: str, volumemodel: InplaceVolumesModel) -> html.Div:
-    return html.Div(
-        style={"marginTop": "5px"},
-        children=html.Label(
-            children=[
-                html.Span("Source", style={"font-weight": "bold"}),
-                dcc.Dropdown(
-                    id={"id": uuid, "element": "ensembles"},
-                    options=[
-                        {"label": src, "value": src} for src in volumemodel.sources
-                    ],
-                    value=volumemodel.sources[0],
-                    clearable=False,
-                    persistence=True,
-                    persistence_type="session",
-                ),
-            ]
-        ),
-    )
-
-
-def plot_selections_layout(uuid: str, volumemodel: InplaceVolumesModel) -> html.Details:
+def plot_selections_layout(
+    uuid: str, volumemodel: InplaceVolumesModel, tab
+) -> html.Details:
     return html.Details(
         className="webviz-inplace-vol-plotselect",
         style={"margin-top": "20px"},
@@ -70,8 +56,7 @@ def plot_selections_layout(uuid: str, volumemodel: InplaceVolumesModel) -> html.
             html.Div(
                 style={"padding": "10px"},
                 children=plot_selector_dropdowns(
-                    uuid=uuid,
-                    volumemodel=volumemodel,
+                    uuid=uuid, volumemodel=volumemodel, tab=tab
                 ),
             ),
         ],
@@ -79,7 +64,7 @@ def plot_selections_layout(uuid: str, volumemodel: InplaceVolumesModel) -> html.
 
 
 def table_selections_layout(
-    uuid: str, volumemodel: InplaceVolumesModel
+    uuid: str, volumemodel: InplaceVolumesModel, tab
 ) -> html.Details:
     responses = volumemodel.volume_columns + volumemodel.property_columns
     return html.Details(
@@ -96,12 +81,12 @@ def table_selections_layout(
             html.Div(
                 style={"padding": "10px"},
                 children=[
-                    table_sync_option(uuid),
+                    table_sync_option(uuid, tab),
                     html.Div(
                         children=[
                             html.Span("Table type", style={"font-weight": "bold"}),
                             dcc.Dropdown(
-                                id={"id": uuid, "selector": "Table type"},
+                                id={"id": uuid, "tab": tab, "selector": "Table type"},
                                 options=[
                                     {"label": elm, "value": elm}
                                     for elm in ["Statistics table", "Mean table"]
@@ -116,13 +101,14 @@ def table_selections_layout(
                     html.Div(
                         id={
                             "id": uuid,
+                            "tab": tab,
                             "element": "table_response_group_wrapper",
                         },
                         style={"display": "None"},
                         children=[
                             html.Span("Group by", style={"font-weight": "bold"}),
                             dcc.Dropdown(
-                                id={"id": uuid, "selector": "Group by"},
+                                id={"id": uuid, "tab": tab, "selector": "Group by"},
                                 options=[
                                     {"label": elm, "value": elm}
                                     for elm in volumemodel.selectors
@@ -135,7 +121,11 @@ def table_selections_layout(
                             ),
                             html.Span("Responses", style={"font-weight": "bold"}),
                             wcc.Select(
-                                id={"id": uuid, "selector": "table_responses"},
+                                id={
+                                    "id": uuid,
+                                    "tab": tab,
+                                    "selector": "table_responses",
+                                },
                                 options=[{"label": i, "value": i} for i in responses],
                                 value=responses,
                                 size=min(
@@ -154,7 +144,7 @@ def table_selections_layout(
 
 
 def plot_selector_dropdowns(
-    uuid: str, volumemodel: InplaceVolumesModel
+    uuid: str, volumemodel: InplaceVolumesModel, tab
 ) -> List[html.Div]:
     """Makes dropdowns for each selector"""
 
@@ -169,7 +159,7 @@ def plot_selector_dropdowns(
         "Color by",
     ]:
         if selector == "Plot type":
-            elements = ["histogram", "scatter", "distribution", "box"]
+            elements = ["histogram", "scatter", "distribution", "box", "bar"]
             value = elements[0]
         if selector == "X Response":
             elements = volumemodel.responses
@@ -190,7 +180,7 @@ def plot_selector_dropdowns(
                     children=[
                         html.Span(selector, style={"font-weight": "bold"}),
                         dcc.Dropdown(
-                            id={"id": uuid, "selector": selector},
+                            id={"id": uuid, "tab": tab, "selector": selector},
                             options=[{"label": elm, "value": elm} for elm in elements],
                             value=value,
                             clearable=selector
@@ -206,7 +196,7 @@ def plot_selector_dropdowns(
     return dropdowns
 
 
-def settings_layout(uuid: str, theme: WebvizConfigTheme) -> html.Details:
+def settings_layout(uuid: str, theme: WebvizConfigTheme, tab) -> html.Details:
 
     theme_colors = theme.plotly_theme.get("layout", {}).get("colorway", [])
     return html.Details(
@@ -220,12 +210,12 @@ def settings_layout(uuid: str, theme: WebvizConfigTheme) -> html.Details:
             html.Div(
                 style={"padding": "10px"},
                 children=[
-                    remove_fluid_annotation(uuid=uuid),
-                    subplot_xaxis_range(uuid=uuid),
-                    histogram_options(uuid=uuid),
+                    remove_fluid_annotation(uuid=uuid, tab=tab),
+                    subplot_xaxis_range(uuid=uuid, tab=tab),
+                    histogram_options(uuid=uuid, tab=tab),
                     html.Span("Colors", style={"font-weight": "bold"}),
                     wcc.ColorScales(
-                        id={"id": uuid, "settings": "Colorscale"},
+                        id={"id": uuid, "tab": tab, "settings": "Colorscale"},
                         colorscale=theme_colors,
                         fixSwatches=True,
                         nSwatches=12,
@@ -236,15 +226,13 @@ def settings_layout(uuid: str, theme: WebvizConfigTheme) -> html.Details:
     )
 
 
-def subplot_xaxis_range(
-    uuid: str,
-) -> html.Div:
+def subplot_xaxis_range(uuid: str, tab) -> html.Div:
     axis_matches_layout = []
     for axis in ["X axis", "Y axis"]:
         axis_matches_layout.append(
             html.Div(
                 children=dcc.Checklist(
-                    id={"id": uuid, "selector": f"{axis} matches"},
+                    id={"id": uuid, "tab": tab, "selector": f"{axis} matches"},
                     options=[{"label": f"Equal {axis} range", "value": "Equal"}],
                     value=["Equal"],
                 )
@@ -258,40 +246,36 @@ def subplot_xaxis_range(
     )
 
 
-def table_sync_option(
-    uuid: str,
-) -> html.Div:
+def table_sync_option(uuid: str, tab) -> html.Div:
     return html.Div(
         style={"margin-bottom": "10px"},
         children=dcc.Checklist(
-            id={"id": uuid, "selector": "sync_table"},
+            id={"id": uuid, "tab": tab, "selector": "sync_table"},
             options=[{"label": "Sync table with plot", "value": "Sync"}],
             value=["Sync"],
         ),
     )
 
 
-def remove_fluid_annotation(
-    uuid: str,
-) -> html.Div:
+def remove_fluid_annotation(uuid: str, tab) -> html.Div:
     return html.Div(
         style={"margin-bottom": "10px"},
         children=dcc.Checklist(
-            id={"id": uuid, "selector": "Fluid annotation"},
+            id={"id": uuid, "tab": tab, "selector": "Fluid annotation"},
             options=[{"label": "Show fluid annotation", "value": "Show"}],
             value=["Show"],
         ),
     )
 
 
-def histogram_options(uuid: str) -> html.Div:
+def histogram_options(uuid: str, tab) -> html.Div:
     return html.Div(
         children=[
             html.Span("Histogram options:", style={"font-weight": "bold"}),
             html.Div(
                 children=[
                     dcc.RadioItems(
-                        id={"id": uuid, "selector": "barmode"},
+                        id={"id": uuid, "tab": tab, "selector": "barmode"},
                         options=[
                             {"label": "overlay", "value": "overlay"},
                             {"label": "group", "value": "group"},
@@ -313,7 +297,11 @@ def histogram_options(uuid: str) -> html.Div:
                             html.Div(
                                 style={"flex": 2, "minWidth": "250px"},
                                 children=dcc.Slider(
-                                    id={"id": uuid, "selector": "hist_bins"},
+                                    id={
+                                        "id": uuid,
+                                        "tab": tab,
+                                        "selector": "hist_bins",
+                                    },
                                     value=15,
                                     min=5,
                                     max=30,

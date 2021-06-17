@@ -8,7 +8,6 @@ from webviz_config import WebvizSettings
 from webviz_config.webviz_assets import WEBVIZ_ASSETS
 from webviz_config.common_cache import CACHE
 from webviz_config.webviz_store import webvizstore
-
 import webviz_subsurface
 
 from webviz_subsurface._models import EnsembleSetModel, InplaceVolumesModel
@@ -20,6 +19,7 @@ from .controllers import (
     distribution_controllers,
     selections_controllers,
     layout_controllers,
+    export_data_controllers,
 )
 
 
@@ -31,7 +31,8 @@ This plugin supports both monte carlo and sensitivity runs, and will automatical
 which case has been run.
 
 The fluid type is determined by the column name suffixes, either (_OIL or _GAS). This suffix
-is removed and a `FLUID` column is added to be used as a filter or selector.
+is removed and a `FLUID_ZONE` column is added to be used as a filter or selector. Volumes from
+the Water zone will be calculated if Total volumes are included.
 
 Input can be given either as aggregated `csv` files or as ensemble name(s)
 defined in `shared_settings` (with volumetric `csv` files stored per realization).
@@ -106,6 +107,7 @@ aggregated_data/parameters.csv)
             / "css"
             / "inplace_volumes.css"
         )
+
         self.csvfile_vol = csvfile_vol
         self.csvfile_parameters = csvfile_parameters
         self.volfiles = volfiles
@@ -164,8 +166,11 @@ aggregated_data/parameters.csv)
 
     def set_callbacks(self, app: dash.Dash) -> None:
         selections_controllers(app=app, get_uuid=self.uuid, volumemodel=self.volmodel)
-        distribution_controllers(app=app, get_uuid=self.uuid, volumemodel=self.volmodel)
+        distribution_controllers(
+            app=app, get_uuid=self.uuid, volumemodel=self.volmodel, theme=self.theme
+        )
         layout_controllers(app=app, get_uuid=self.uuid)
+        export_data_controllers(app=app, get_uuid=self.uuid)
 
     def add_webvizstore(self) -> List[Tuple[Callable, list]]:
         if self.csvfile_vol is not None:

@@ -19,7 +19,7 @@ class InplaceVolumesModel:
         "SENSTYPE",
     ]
     POSSIBLE_SELECTORS = [
-        "FLUID",
+        "FLUID_ZONE",
         "SOURCE",
         "ENSEMBLE",
         "REAL",
@@ -38,6 +38,48 @@ class InplaceVolumesModel:
         parameter_table: Optional[pd.DataFrame] = None,
         drop_constants: bool = False,
     ):
+
+        selector_columns = [
+            x for x in volumes_table.columns if x in self.POSSIBLE_SELECTORS
+        ]
+
+        # ensure that dataframe is aligned on axis
+        volumes_table = volumes_table.groupby(selector_columns).sum().reset_index()
+        # print(volumes_table)
+
+        # stack dataframe on fluid zone and add fluid as column istead of a column suffix
+        # add water zone columns if TOTAL volumes present
+        for col in [
+            x.replace("_TOTAL", "")
+            for x in volumes_table.columns
+            if x.endswith("_TOTAL")
+        ]:
+            volumes_table[f"{col}_WATER"] = (
+                volumes_table[f"{col}_TOTAL"]
+                - volumes_table.get(f"{col}_OIL", 0)
+                - volumes_table.get(f"{col}_GAS", 0)
+            )
+
+        dfs = []
+        for fluid in ["OIL", "GAS", "WATER"]:
+            fluid_columns = [
+                x for x in volumes_table.columns if x.endswith(f"_{fluid}")
+            ]
+            if not fluid_columns:
+                continue
+            df = volumes_table[selector_columns + fluid_columns].copy()
+            df.columns = df.columns.str.replace(f"_{fluid}", "")
+            df["FLUID_ZONE"] = fluid.lower()
+            dfs.append(df)
+
+        volumes_table = pd.concat(dfs)
+
+        # Rename PORE to PORV (PORE will be deprecated..)
+        if "PORE" in volumes_table:
+            volumes_table.rename(columns={"PORE": "PORV"}, inplace=True)
+
+        # If parameters present check if the case is a sensitivity run
+        # and merge sensitivity columns into the dataframe
         self._parameters: List[str] = []
         if parameter_table is not None:
             self._prepare_parameter_data(parameter_table, drop_constants=drop_constants)
@@ -46,6 +88,10 @@ class InplaceVolumesModel:
             parameter_table is not None and "SENSNAME" in parameter_table.columns
         )
         if self._designrun:
+
+            # hack!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            parameter_table.replace("simulation", "p10_p90", inplace=True)
+
             parameter_table["SENSTYPE"] = parameter_table.apply(
                 lambda row: find_sens_type(row.SENSCASE)
                 if not pd.isnull(row.SENSCASE)
@@ -63,26 +109,6 @@ class InplaceVolumesModel:
         sens_params_table = (
             parameter_table[self.SENS_COLUMNS] if self._designrun else None
         )
-
-        # TO-DO add code for computing water volumes if "TOTAL" is present
-        dfs = []
-        for fluid in ["OIL", "GAS"]:
-            selector_columns = [
-                x for x in volumes_table.columns if x in self.POSSIBLE_SELECTORS
-            ]
-            fluid_columns = [x for x in volumes_table.columns if x.endswith(fluid)]
-            if not fluid_columns:
-                continue
-            df = volumes_table[selector_columns + fluid_columns].copy()
-            df.columns = df.columns.str.replace(f"_{fluid}", "")
-            df["FLUID"] = fluid.lower()
-            dfs.append(df)
-
-        volumes_table = pd.concat(dfs)
-
-        # Rename PORE to PORV (PORE will be deprecated..)
-        if "PORE" in volumes_table:
-            volumes_table.rename(columns={"PORE": "PORV"}, inplace=True)
 
         # Merge into one dataframe
         self._dataframe = (
@@ -112,6 +138,10 @@ class InplaceVolumesModel:
     @property
     def sensrun(self) -> bool:
         return self._sensrun
+
+    @property
+    def sensitivities(self) -> bool:
+        return list(self._dataframe["SENSNAME"].unique()) if self.sensrun else None
 
     @property
     def sources(self) -> List[str]:
@@ -178,7 +208,6 @@ class InplaceVolumesModel:
 
         # if NTG not given Net is equal to bulk
         net_column = "NET" if "NET" in dframe.columns else "BULK"
-
         if "NTG" in properties:
             dframe["NTG"] = dframe[net_column] / dframe["BULK"]
         if "PORO" in properties:
@@ -189,7 +218,43 @@ class InplaceVolumesModel:
             dframe["BO"] = dframe["HCPV"] / dframe["STOIIP"]
         if "BG" in properties:
             dframe["BG"] = dframe["HCPV"] / dframe["GIIP"]
+        # nan is handled by plotly but not inf
+        dframe.replace(np.inf, np.nan, inplace=True)
+        return dframe
 
+    def get_df(
+        self,
+        filters: Optional[dict] = None,
+        groups: Optional[list] = None,
+        parameters: Optional[list] = None,
+        properties: Optional[list] = None,
+    ) -> pd.DataFrame:
+
+        dframe = self.dataframe.copy()
+
+        groups = groups if groups is not None else []
+        parameters = parameters if parameters is not None else []
+
+        if parameters:
+            columns = parameters + ["REAL", "ENSEMBLE"]
+            dframe = pd.merge(
+                dframe, self.parameter_df[columns], on=["REAL", "ENSEMBLE"]
+            )
+        dframe = filter_df(dframe, filters)
+
+        prevent_sum_over = ["REAL", "ENSEMBLE", "SOURCE"]
+
+        if groups:
+            sum_over_groups = groups + [x for x in prevent_sum_over if x not in groups]
+
+            # Need to sum volume columns and take the average of parameter columns
+            aggregations = {x: "sum" for x in self.volume_columns}
+            aggregations.update({x: "mean" for x in parameters})
+
+            dframe = dframe.groupby(sum_over_groups).agg(aggregations).reset_index()
+            dframe = dframe.groupby(groups).mean().reset_index()
+
+        dframe = self.compute_property_columns(dframe, properties)
         return dframe
 
     def _prepare_parameter_data(
@@ -247,6 +312,12 @@ class InplaceVolumesModel:
         self._parameters = [
             x for x in parameter_table.columns if x not in self.SENS_COLUMNS
         ]
+
+
+def filter_df(dframe: pd.DataFrame, filters: dict) -> pd.DataFrame:
+    for filt, values in filters.items():
+        dframe = dframe.loc[dframe[filt].isin(values)]
+    return dframe
 
 
 @CACHE.memoize(timeout=CACHE.TIMEOUT)
