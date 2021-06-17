@@ -1,4 +1,5 @@
 from typing import Tuple, Dict, List
+import json
 import pandas as pd
 import dash_html_components as html
 import dash_table
@@ -18,13 +19,20 @@ from ._deckgl_surface_layer import DeckGLSurfaceLayers
 class SurfaceViewerSumo(WebvizPluginABC):
     """### SurfaceViewerSumo"""
 
-    def __init__(self, app, sumo_env="main"):
+    def __init__(self, app, sumo_env="main", wells:str=None, logs:str=None):
 
         super().__init__()
         self.shared_settings = app.webviz_settings["shared_settings"]
         self.sumo = SumoSurfaceProvider(env=sumo_env)
         self.tags = self.make_smartselector()
-        print(self.tags)
+        self.well_layer = None
+        if wells and logs:
+            with open(wells, "r") as f:
+                self.wells = json.load(f)
+            with open(logs, "r") as f:
+                self.logs = json.load(f)
+            self.well_layer = well_layer(self.wells, self.logs)
+        # print(self.tags)
         self.set_callbacks(app)
 
     def get_case_options(self) -> list:
@@ -96,14 +104,18 @@ class SurfaceViewerSumo(WebvizPluginABC):
                                         ],
                                     ),
                                     wcc.Selectors(
-                                        label="Fault lines",
+                                        label="Additonal layers",
                                         children=[
                                             wcc.Checklist(
-                                                id=self.uuid("fault-lines"),
+                                                id=self.uuid("additional-layers"),
                                                 options=[
                                                     {
-                                                        "label": "Show fault lines",
+                                                        "label": "Fault lines",
                                                         "value": "faultlines",
+                                                    },
+                                                    {
+                                                        "label": "Wells and logs",
+                                                        "value": "wellsandlogs",
                                                     }
                                                 ],
                                             )
@@ -238,9 +250,10 @@ class SurfaceViewerSumo(WebvizPluginABC):
             Input(self.uuid("surface-content"), "value"),
             Input(self.uuid("surface-name"), "value"),
             Input(self.uuid("realization"), "value"),
+            Input(self.uuid("additional-layers"), "value")
             # Input(self.uuid("smartnode"), "selectedTags"),
         )
-        def _set_surface(case, iteration, content, name, real):
+        def _set_surface(case, iteration, content, name, real, additional_layers):
             # print("selected tag", selected_tag)
             if (
                 case is None
@@ -284,8 +297,12 @@ class SurfaceViewerSumo(WebvizPluginABC):
             param_df = param_df.rename(columns={"index": "Name"})
 
             spec = DeckGLSurfaceLayers(surface)
+            patch = spec.patch
+            if self.well_layer and additional_layers and "wellsandlogs" in additional_layers:
+                patch[0]["value"]["layers"].append(self.well_layer)
+            
             return (
-                spec.patch,
+                patch,
                 param_df.to_dict(orient="records"),
                 json.dumps(surface_descr, indent=1),
             )
@@ -335,3 +352,19 @@ def get_options_and_value(new_values: list, current_value: str) -> Tuple[List, s
     else:
         value = new_values[0]
     return [{"label": val, "value": val} for val in new_values], value
+
+
+def well_layer(wells, logs):
+    return             {
+              "@@type": "WellsLayer",
+              "id": "wells-layer",
+              "data": wells,
+              "logData": logs,
+              "opacity": 1.0,
+              "lineWidthScale": 5,
+              "logRadius": 6,
+              "logName": "zonelog",
+              "pointRadiusScale": 8,
+              "outline": True,
+              "logCurves": True
+            }
