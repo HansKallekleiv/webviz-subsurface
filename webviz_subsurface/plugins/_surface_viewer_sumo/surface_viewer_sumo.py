@@ -16,23 +16,39 @@ from webviz_subsurface._providers.sumo_surface_provider import SumoSurfaceProvid
 from ._deckgl_surface_layer import DeckGLSurfaceLayers
 
 
+def load_json(fn: str):
+    with open(fn, "r") as f:
+        return json.load(f)
+
+
 class SurfaceViewerSumo(WebvizPluginABC):
     """### SurfaceViewerSumo"""
 
-    def __init__(self, app, sumo_env="main", wells:str=None, logs:str=None):
+    def __init__(
+        self,
+        app,
+        sumo_env="main",
+        wells: str = None,
+        logs: str = None,
+        faultlines: Dict = None,
+    ):
 
         super().__init__()
         self.shared_settings = app.webviz_settings["shared_settings"]
         self.sumo = SumoSurfaceProvider(env=sumo_env)
         self.tags = self.make_smartselector()
-        self.well_layer = None
-        if wells and logs:
-            with open(wells, "r") as f:
-                self.wells = json.load(f)
-            with open(logs, "r") as f:
-                self.logs = json.load(f)
-            self.well_layer = well_layer(self.wells, self.logs)
-        # print(self.tags)
+        self.logs = load_json(logs)
+        self.lognames = list(
+            set(curve["name"] for well in self.logs for curve in well["curves"])
+        )
+        self.wells = load_json(wells)
+
+        self.faultlines = (
+            {name: faultline_layer(load_json(fn)) for name, fn in faultlines.items()}
+            if faultlines
+            else None
+        )
+
         self.set_callbacks(app)
 
     def get_case_options(self) -> list:
@@ -92,18 +108,6 @@ class SurfaceViewerSumo(WebvizPluginABC):
                                         ],
                                     ),
                                     wcc.Selectors(
-                                        label="Well data",
-                                        children=[
-                                            wcc.SelectWithLabel(
-                                                id=self.uuid("wells"), label="Wells"
-                                            ),
-                                            wcc.Dropdown(
-                                                id=self.uuid("well-log"),
-                                                label="Well log",
-                                            ),
-                                        ],
-                                    ),
-                                    wcc.Selectors(
                                         label="Additonal layers",
                                         children=[
                                             wcc.Checklist(
@@ -116,9 +120,24 @@ class SurfaceViewerSumo(WebvizPluginABC):
                                                     {
                                                         "label": "Wells and logs",
                                                         "value": "wellsandlogs",
-                                                    }
+                                                    },
                                                 ],
                                             )
+                                        ],
+                                    ),
+                                    wcc.Selectors(
+                                        label="Well data",
+                                        children=[
+                                            wcc.Dropdown(
+                                                id=self.uuid("log"),
+                                                label="Log",
+                                                options=[
+                                                    {"label": log, "value": log}
+                                                    for log in self.lognames
+                                                ],
+                                                value=self.lognames[0],
+                                                clearable=False,
+                                            ),
                                         ],
                                     ),
                                 ],
@@ -250,10 +269,13 @@ class SurfaceViewerSumo(WebvizPluginABC):
             Input(self.uuid("surface-content"), "value"),
             Input(self.uuid("surface-name"), "value"),
             Input(self.uuid("realization"), "value"),
-            Input(self.uuid("additional-layers"), "value")
+            Input(self.uuid("additional-layers"), "value"),
             # Input(self.uuid("smartnode"), "selectedTags"),
+            Input(self.uuid("log"), "value"),
         )
-        def _set_surface(case, iteration, content, name, real, additional_layers):
+        def _set_surface(
+            case, iteration, content, name, real, additional_layers, logname
+        ):
             # print("selected tag", selected_tag)
             if (
                 case is None
@@ -298,9 +320,18 @@ class SurfaceViewerSumo(WebvizPluginABC):
 
             spec = DeckGLSurfaceLayers(surface)
             patch = spec.patch
-            if self.well_layer and additional_layers and "wellsandlogs" in additional_layers:
-                patch[0]["value"]["layers"].append(self.well_layer)
-            
+            additional_layers = additional_layers if additional_layers else []
+            if self.wells and self.logs and "wellsandlogs" in additional_layers:
+                patch[0]["value"]["layers"].append(
+                    well_layer(self.wells, self.logs, logname)
+                )
+            if (
+                self.faultlines
+                and "faultlines" in additional_layers
+                and self.faultlines.get(name)
+            ):
+                print(self.faultlines.get(name))
+                patch[0]["value"]["layers"].append(self.faultlines.get(name))
             return (
                 patch,
                 param_df.to_dict(orient="records"),
@@ -354,17 +385,26 @@ def get_options_and_value(new_values: list, current_value: str) -> Tuple[List, s
     return [{"label": val, "value": val} for val in new_values], value
 
 
-def well_layer(wells, logs):
-    return             {
-              "@@type": "WellsLayer",
-              "id": "wells-layer",
-              "data": wells,
-              "logData": logs,
-              "opacity": 1.0,
-              "lineWidthScale": 5,
-              "logRadius": 6,
-              "logName": "zonelog",
-              "pointRadiusScale": 8,
-              "outline": True,
-              "logCurves": True
-            }
+def well_layer(wells, logdata, logname="Zone"):
+    return {
+        "@@type": "WellsLayer",
+        "id": "wells-layer",
+        "data": wells,
+        "logData": logdata,
+        "opacity": 1.0,
+        "lineWidthScale": 5,
+        "logRadius": 6,
+        "logName": logname,
+        "pointRadiusScale": 8,
+        "outline": True,
+        "logCurves": True,
+    }
+
+
+def faultline_layer(faultlines):
+    return {
+        "@@type": "FaultPolygonsLayer",
+        "id": "fault-polygons-layer",
+        "data": faultlines,
+        "lineWidthMinPixels": 2,
+    }
