@@ -16,12 +16,13 @@ class TornadoBarChart:
         tornado_data: TornadoData,
         plotly_theme: Dict[str, Any],
         figure_height: Optional[int] = None,
-        show_labels: bool = True,
+        label_options: str = "detailed",
         locked_si_prefix: Optional[int] = None,
         number_format: str = "",
         unit: str = "",
         spaced: bool = True,
         use_true_base: bool = False,
+        
     ) -> None:
         self._tornadotable = tornado_data.tornadotable
         self._reference_average = tornado_data.reference_average
@@ -39,12 +40,9 @@ class TornadoBarChart:
         else:
             self._unit_x = self._unit
             self._locked_si_prefix_relative = locked_si_prefix
-        self._figure_height = (
-            figure_height
-            if figure_height
-            else 100 * len(self._tornadotable["sensname"].unique())
-        )
-        self._show_labels = show_labels
+        self._figure_height = figure_height
+        self._label_options = label_options
+
 
     @property
     def figure_height(self) -> int:
@@ -73,6 +71,33 @@ class TornadoBarChart:
             )
         )
 
+    def bar_labels(self, case:str) -> List:
+        if self._label_options == "hide":
+            return []
+
+        if self._label_options == "simple":
+            return [
+                    f"<b>{self._set_si_prefix_relative(x)}</b>, "
+                    for x in                         self._tornadotable[f"{case}_tooltip"]
+
+                    
+                ]
+        if self._label_options == "detailed":
+            return [
+                    f"<b>{self._set_si_prefix_relative(x)}</b>, "
+                    f"True: {self._set_si_prefix(val)}, "
+                    f"<br><b>Case: {label}</b>, "
+                    f"Reals: {printable_int_list(reals)}"
+                    if reals
+                    else None
+                    for x, label, val, reals in zip(
+                        self._tornadotable[f"{case}_tooltip"],
+                        self._tornadotable[f"{case}_label"],
+                        self._tornadotable[f"true_{case}"],
+                        self._tornadotable[f"{case}_reals"],
+                    )
+                ]
+        
     @property
     def data(self) -> List:
         return [
@@ -85,27 +110,12 @@ class TornadoBarChart:
                 if not self._use_true_base
                 else self._reference_average,
                 customdata=self._tornadotable["low_reals"],
-                text=[
-                    f"<b>{self._set_si_prefix_relative(x)}</b>, "
-                    f"True: {self._set_si_prefix(val)}, "
-                    f"<br><b>Case: {label}</b>, "
-                    f"Reals: {printable_int_list(reals)}"
-                    if reals
-                    else None
-                    for x, label, val, reals in zip(
-                        self._tornadotable["low_tooltip"],
-                        self._tornadotable["low_label"],
-                        self._tornadotable["true_low"],
-                        self._tornadotable["low_reals"],
-                    )
-                ]
-                if self._show_labels
-                else [],
+                text= self.bar_labels("low"),
                 textposition="auto",
                 insidetextanchor="middle",
                 hoverinfo="none",
                 orientation="h",
-                marker={"line": {"width": 1.5}},
+                marker={"line": {"width": 1.5, "color":"black"}},
             ),
             dict(
                 type="bar",
@@ -116,29 +126,21 @@ class TornadoBarChart:
                 if not self._use_true_base
                 else self._reference_average,
                 customdata=self._tornadotable["high_reals"],
-                text=[
-                    f"<b>{self._set_si_prefix_relative(x)}</b>, "
-                    f"True: {self._set_si_prefix(val)}, "
-                    f"<br><b>Case: {label}</b>, "
-                    f"Reals: {printable_int_list(reals)}"
-                    if reals
-                    else None
-                    for x, label, val, reals in zip(
-                        self._tornadotable["high_tooltip"],
-                        self._tornadotable["high_label"],
-                        self._tornadotable["true_high"],
-                        self._tornadotable["high_reals"],
-                    )
-                ]
-                if self._show_labels
-                else [],
+                text= self.bar_labels("high"),
                 textposition="auto",
                 insidetextanchor="middle",
                 hoverinfo="none",
                 orientation="h",
-                marker={"line": {"width": 1.5}},
+                marker={"line": {"width": 1.5, "color":"black"}},
             ),
         ]
+    @property
+    def range(self) -> float:
+        """Calculate x-axis range so that the reference is centered"""
+        max_val =  max(self._tornadotable[["low","high"]].abs().max())
+        if self._use_true_base:
+            return [(self._reference_average - max_val)*0.95, (self._reference_average + max_val)*1.05]
+        return [-max_val*1.05, max_val*1.05]
 
     @property
     def layout(self) -> Dict:
@@ -148,12 +150,14 @@ class TornadoBarChart:
             {
                 "height": self.figure_height,
                 "barmode": "overlay",
-                "margin": {"l": 0, "r": 0, "b": 20, "t": 0},
+                "margin": {"l": 0, "r": 0, "b": 20, "t": 0, "pad":21},
                 "xaxis": {
                     "title": self._scale,
-                    "autorange": True,
+                    "range":self.range,
+                    "autorange":False,
                     "showgrid": False,
                     "zeroline": False,
+                    "linecolor":"black",
                     "showline": True,
                     "automargin": True,
                     "side": "top",
@@ -175,8 +179,10 @@ class TornadoBarChart:
                         "y": 1.05,
                         "xref": "x",
                         "yref": "paper",
-                        "text": f"Reference avg: "
-                        f"{self._set_si_prefix(self._reference_average)}",
+                        "text": 
+                        f"<b>{self._set_si_prefix(self._reference_average)}</b>"
+                        " (Ref avg)",
+
                         "showarrow": False,
                         "align": "center",
                     }

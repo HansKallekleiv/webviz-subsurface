@@ -440,8 +440,8 @@ def distribution_controllers(
                 TornadoBarChart(
                     tornado_data=tornado_data,
                     plotly_theme=theme.plotly_theme,
-                    figure_height=700,
-                    show_labels=selections["labeloptions"] != "hide",
+                    # figure_height=700,
+                    label_options = selections["labeloptions"],
                     number_format="#.3g",
                     use_true_base=use_true,
                 ).figure
@@ -466,14 +466,7 @@ def distribution_controllers(
                 margin={"t": 70},
             )
 
-            if selections["labeloptions"] == "simple":
-                figure.update_traces(
-                    texttemplate="%{x:.1f}%"
-                    if selections["Scale"] == "Percentage"
-                    else "%{x:.4s}",
-                    insidetextanchor="end",
-                    hoverinfo="none",
-                )
+
 
             figures.append(figure)
             tables.append(TornadoTable(tornado_data=tornado_data))

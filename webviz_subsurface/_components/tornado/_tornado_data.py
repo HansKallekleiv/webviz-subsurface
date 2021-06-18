@@ -213,7 +213,8 @@ class TornadoData:
         )
         self._tornadotable.sort_values("max", ascending=True, inplace=True)
         self._tornadotable.drop(["max"], axis=1, inplace=True)
-
+        self._tornadotable = pd.concat([self._tornadotable[self._tornadotable["sensname"]!=self._reference], self._tornadotable[self._tornadotable["sensname"]==self._reference]])
+        
     @property
     def low_high_realizations_list(self) -> Dict[str, Dict]:
         return {
