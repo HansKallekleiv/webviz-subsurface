@@ -45,19 +45,25 @@ jobs:
 
     - name: 🤖 Clone default compression
       run: |
-        git clone --depth 1 --branch $TESTDATA_REPO_BRANCH https://github.com/$TESTDATA_REPO_OWNER/webviz-subsurface-testdata.git
+        git clone --depth 1  https://github.com/equinor/webviz-subsurface-testdata.git
         rm -rf webviz-subsurface-testdata
       
 
     - name: 🤖 Clone no compression
       run: |
         git config --global core.compression 0
-        git clone --depth 1 --branch $TESTDATA_REPO_BRANCH https://github.com/$TESTDATA_REPO_OWNER/webviz-subsurface-testdata.git
+        git clone --depth 1  https://github.com/equinor/webviz-subsurface-testdata.git
         rm -rf webviz-subsurface-testdata
 
 
     - name: 🤖 Clone full compression
       run: |
         git config --global core.compression 9
-        git clone --depth 1 --branch $TESTDATA_REPO_BRANCH https://github.com/$TESTDATA_REPO_OWNER/webviz-subsurface-testdata.git
+        git clone --depth 1  https://github.com/equinor/webviz-subsurface-testdata.git
         rm -rf webviz-subsurface-testdata
+    
+    - name: Checkout testdata
+      uses: actions/checkout@v2
+      with:
+        repository: equinir/webviz-subsurface-testdata
+        path: webviz-subsurface-testata
