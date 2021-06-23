@@ -67,5 +67,7 @@ jobs:
       with:
         repository: equinor/webviz-subsurface-testdata
         path: webviz-subsurface-testata
+    - name: 🤖 Clone full compression
       run: |
+    
         du -hs webviz-subsurface-testdata
