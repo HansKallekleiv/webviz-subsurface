@@ -34,9 +34,15 @@ def property_response_controller(parent: "PropertyStatistics", app: dash.Dash) -
             zone = label.split(" | ")[1]
             sprop = parent.surface_renaming.get(prop, prop)
             szone = parent.surface_renaming.get(zone, zone)
-            surface = surface_from_zone_prop(
-                parent, zone=szone, prop=sprop, ensemble=ensemble, stype=stype
-            )
+            try:
+                surface = surface_from_zone_prop(
+                    parent, zone=szone, prop=sprop, ensemble=ensemble, stype=stype
+                )
+            except ValueError:  # Surface does not exist
+                return (
+                    dash.dash.no_update,
+                    f"No surface found for {stype.capitalize()} for {prop}, {zone}",
+                )
             surface_layer = SurfaceLeafletModel(surface, name="surface").layer
             return [surface_layer], f"{stype.capitalize()} for {prop}, {zone}"
         raise PreventUpdate

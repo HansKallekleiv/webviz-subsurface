@@ -89,12 +89,15 @@ def make_surfaces(
 
     sprop = parent.surface_renaming.get(prop, prop)
     szone = parent.surface_renaming.get(zone, zone)
-    ens_surface = surface_from_zone_prop(
-        parent, zone=szone, prop=sprop, ensemble=ensemble, stype=statistic
-    )
-    delta_ens_surface = surface_from_zone_prop(
-        parent, zone=szone, prop=sprop, ensemble=delta_ensemble, stype=statistic
-    )
+    try:
+        ens_surface = surface_from_zone_prop(
+            parent, zone=szone, prop=sprop, ensemble=ensemble, stype=statistic
+        )
+        delta_ens_surface = surface_from_zone_prop(
+            parent, zone=szone, prop=sprop, ensemble=delta_ensemble, stype=statistic
+        )
+    except ValueError:
+        return html.Div("No surfaces found")
 
     # Truncating surface values to highest low and lowest high for each map
     min_val = max([ens_surface.values.min(), delta_ens_surface.values.min()])
