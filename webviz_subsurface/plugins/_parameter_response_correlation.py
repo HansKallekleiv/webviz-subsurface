@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from plotly.subplots import make_subplots
 from dash.dependencies import Input, Output
-import dash_core_components as dcc
+from dash import dcc
 import webviz_core_components as wcc
 from webviz_config.webviz_store import webvizstore
 from webviz_config.common_cache import CACHE

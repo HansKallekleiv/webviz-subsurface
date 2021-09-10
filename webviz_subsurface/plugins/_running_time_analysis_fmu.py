@@ -3,10 +3,9 @@ import json
 
 import pandas as pd
 import numpy as np
-import dash
-import dash_html_components as html
-import webviz_core_components as wcc
+from dash import html, Dash
 from dash.dependencies import Input, Output
+import webviz_core_components as wcc
 from webviz_config.webviz_store import webvizstore
 from webviz_config.common_cache import CACHE
 from webviz_config import WebvizPluginABC
@@ -63,7 +62,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
 
     def __init__(
         self,
-        app: dash.Dash,
+        app: Dash,
         webviz_settings: WebvizSettings,
         ensembles: list,
         filter_shorter: Union[int, float] = 10,
@@ -277,7 +276,7 @@ blob/master/reek_history_match/realization-0/iter-0/status.json).
             ],
         )
 
-    def set_callbacks(self, app: dash.Dash) -> None:
+    def set_callbacks(self, app: Dash) -> None:
         @app.callback(
             Output(self.uuid("fig"), "figure"),
             [

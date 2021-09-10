@@ -1,15 +1,14 @@
 from typing import Union, List, Callable
 
-import dash
+from dash import dash_table, Dash
 from dash.dependencies import Input, Output, ALL
-import dash_table
 import webviz_core_components as wcc
 
 from ..models import PropertyStatisticsModel
 
 
 def property_qc_controller(
-    get_uuid: Callable, property_model: PropertyStatisticsModel, app: dash.Dash
+    get_uuid: Callable, property_model: PropertyStatisticsModel, app: Dash
 ) -> None:
     @app.callback(
         Output(get_uuid("property-qc-wrapper"), "children"),

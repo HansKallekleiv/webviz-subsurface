@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 import xtgeo
+from dash import html
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
-import dash_html_components as html
 import webviz_core_components as wcc
 from webviz_subsurface_components import LeafletMap
 from webviz_config import WebvizPluginABC

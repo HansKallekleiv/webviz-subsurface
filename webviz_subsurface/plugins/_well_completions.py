@@ -6,9 +6,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import dash
+from dash import html, Dash
 from dash.dependencies import Input, Output
-import dash_html_components as html
 
 from webviz_config.common_cache import CACHE
 from webviz_config.webviz_store import webvizstore
@@ -185,7 +184,7 @@ class WellCompletions(WebvizPluginABC):
     def __init__(
         # pylint: disable=too-many-arguments
         self,
-        app: dash.Dash,
+        app: Dash,
         webviz_settings: WebvizSettings,
         ensembles: list,
         compdat_file: str = "share/results/tables/compdat.csv",
@@ -288,7 +287,7 @@ class WellCompletions(WebvizPluginABC):
             ],
         )
 
-    def set_callbacks(self, app: dash.Dash) -> None:
+    def set_callbacks(self, app: Dash) -> None:
         @app.callback(
             Output(self.uuid("well_completions_wrapper"), "children"),
             Output(self.uuid("well_completions_wrapper"), "style"),

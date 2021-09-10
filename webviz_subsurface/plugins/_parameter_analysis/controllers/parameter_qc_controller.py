@@ -1,15 +1,14 @@
 from typing import Callable
 
-import dash
+from dash import dash_table, Dash
 from dash.dependencies import Input, Output, State
-import dash_table
 import webviz_core_components as wcc
 
 from ..models import ParametersModel
 
 
 def parameter_qc_controller(
-    app: dash.Dash, get_uuid: Callable, parametermodel: ParametersModel
+    app: Dash, get_uuid: Callable, parametermodel: ParametersModel
 ):
     @app.callback(
         Output(get_uuid("property-qc-wrapper"), "children"),

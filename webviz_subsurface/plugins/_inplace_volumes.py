@@ -4,10 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import dash
-from dash_table import DataTable
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html, dcc, dash_table, Dash
 from dash.dependencies import Input, Output
 import webviz_core_components as wcc
 from webviz_config.common_cache import CACHE
@@ -90,7 +87,7 @@ but the following responses are given more descriptive names automatically:
 
     def __init__(
         self,
-        app: dash.Dash,
+        app: Dash,
         webviz_settings: WebvizSettings,
         csvfile: Path = None,
         ensembles: list = None,
@@ -384,7 +381,7 @@ but the following responses are given more descriptive names automatically:
                                             style={"textAlign": "center"},
                                             children="",
                                         ),
-                                        DataTable(
+                                        dash_table.DataTable(
                                             id=self.ids("table"),
                                             sort_action="native",
                                             filter_action="native",
@@ -400,7 +397,7 @@ but the following responses are given more descriptive names automatically:
             ]
         )
 
-    def set_callbacks(self, app: dash.Dash) -> None:
+    def set_callbacks(self, app: Dash) -> None:
         @app.callback(
             [  # type: ignore
                 Output(self.ids("graph"), "figure"),
