@@ -86,7 +86,7 @@ setup(
         "defusedxml>=0.6.0",
         "ecl2df>=0.13.0; sys_platform=='linux'",
         "fmu-ensemble>=1.2.3",
-        "orjson>=3.6.3",
+        "orjson>=3.6.3; python_version<'3.7'",
         "opm>=2020.10.1; sys_platform=='linux'",
         "pandas>=1.1.5",
         "pillow>=6.1",
