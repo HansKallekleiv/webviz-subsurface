@@ -2,8 +2,7 @@ from typing import List, Optional, Dict, Union, Tuple, Callable
 
 import pandas as pd
 import numpy as np
-from dash import html, Dash
-from dash.dependencies import Input, Output
+from dash import html, Dash, Input, Output
 import webviz_core_components as wcc
 from webviz_config.common_cache import CACHE
 from webviz_config import WebvizPluginABC

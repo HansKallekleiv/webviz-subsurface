@@ -3,8 +3,7 @@ from itertools import chain
 
 import numpy as np
 import pandas as pd
-from dash import dcc, Dash, callback_context, no_update
-from dash.dependencies import Input, Output, State, ALL
+from dash import dcc, Dash, callback_context, no_update, Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.express as px
 import plotly.graph_objects as go

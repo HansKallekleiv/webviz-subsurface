@@ -2,8 +2,7 @@ from typing import List, Dict, Tuple
 
 import numpy as np
 import pandas as pd
-from dash import html, dcc, Dash
-from dash.dependencies import Input, Output, State, ALL
+from dash import html, dcc, Dash, Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import webviz_core_components as wcc
 import dash_bootstrap_components as dbc

@@ -2,8 +2,7 @@ from typing import Dict, List
 from pathlib import Path
 import json
 
-from dash import html, Dash, callback_context
-from dash.dependencies import Input, Output, ALL
+from dash import html, Dash, callback_context, Input, Output, ALL
 from webviz_config import WebvizPluginABC, WebvizSettings
 import webviz_core_components as wcc
 

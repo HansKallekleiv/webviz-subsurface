@@ -2,8 +2,7 @@ from typing import Callable, List, Optional
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 import numpy as np
-from dash import html, Dash, dash_table, no_update
-from dash.dependencies import Input, Output, State, ALL
+from dash import html, Dash, dash_table, no_update, Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.express as px
 import plotly.graph_objects as go

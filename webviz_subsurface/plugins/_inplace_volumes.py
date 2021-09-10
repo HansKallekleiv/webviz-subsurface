@@ -4,8 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from dash import html, dcc, dash_table, Dash
-from dash.dependencies import Input, Output
+from dash import html, dcc, dash_table, Dash, Input, Output
 import webviz_core_components as wcc
 from webviz_config.common_cache import CACHE
 from webviz_config.webviz_store import webvizstore

@@ -6,9 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from dash import html, Dash
-from dash.dependencies import Input, Output
-
+from dash import html, Dash, Input, Output
 from webviz_config.common_cache import CACHE
 from webviz_config.webviz_store import webvizstore
 from webviz_config import WebvizPluginABC

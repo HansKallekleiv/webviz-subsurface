@@ -8,9 +8,8 @@ import datetime
 import numpy as np
 import pandas as pd
 from plotly.subplots import make_subplots
-from dash import html, dcc, Dash
+from dash import html, dcc, Dash, Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output, State
 import webviz_core_components as wcc
 import webviz_subsurface_components as wsc
 from webviz_config import WebvizPluginABC, EncodedFile

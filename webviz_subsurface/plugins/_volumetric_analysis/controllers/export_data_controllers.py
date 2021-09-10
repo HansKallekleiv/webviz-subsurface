@@ -1,7 +1,6 @@
 from typing import Callable
 import pandas as pd
-from dash import dcc, Dash, callback_context
-from dash.dependencies import Input, Output, State, ALL
+from dash import dcc, Dash, callback_context, Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 
 

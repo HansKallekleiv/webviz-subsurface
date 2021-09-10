@@ -8,8 +8,7 @@ import defusedxml.ElementTree as ET
 
 import numpy as np
 import xtgeo
-from dash import html, dcc, dash_table, Dash, callback_context
-from dash.dependencies import Input, Output, State
+from dash import html, dcc, dash_table, Dash, callback_context, Input, Output, State
 import dash_bootstrap_components as dbc
 import webviz_core_components as wcc
 import webviz_subsurface_components

@@ -6,9 +6,8 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from dash import html, dcc, Dash, callback_context, dash_table
+from dash import html, dcc, Dash, callback_context, dash_table, Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output, State
 import webviz_core_components as wcc
 from webviz_config import WebvizPluginABC
 from webviz_config import WebvizSettings

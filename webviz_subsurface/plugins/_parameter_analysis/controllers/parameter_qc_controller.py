@@ -1,7 +1,6 @@
 from typing import Callable
 
-from dash import dash_table, Dash
-from dash.dependencies import Input, Output, State
+from dash import dash_table, Dash, Input, Output, State
 import webviz_core_components as wcc
 
 from ..models import ParametersModel

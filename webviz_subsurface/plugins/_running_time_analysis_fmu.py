@@ -3,8 +3,7 @@ import json
 
 import pandas as pd
 import numpy as np
-from dash import html, Dash
-from dash.dependencies import Input, Output
+from dash import html, Dash, Input, Output
 import webviz_core_components as wcc
 from webviz_config.webviz_store import webvizstore
 from webviz_config.common_cache import CACHE

@@ -3,9 +3,8 @@ import json
 from uuid import uuid4
 from pathlib import Path
 
-from dash import html, dcc, Dash, callback_context
+from dash import html, dcc, Dash, callback_context, Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output, State
 import webviz_core_components as wcc
 from webviz_config import WebvizPluginABC
 from webviz_config import WebvizSettings

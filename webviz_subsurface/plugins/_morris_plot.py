@@ -3,8 +3,7 @@ from uuid import uuid4
 from pathlib import Path
 
 import pandas as pd
-from dash import html, dcc, Dash
-from dash.dependencies import Input, Output
+from dash import html, dcc, Dash, Input, Output
 from webviz_subsurface_components import Morris
 from webviz_config.webviz_store import webvizstore
 from webviz_config.common_cache import CACHE

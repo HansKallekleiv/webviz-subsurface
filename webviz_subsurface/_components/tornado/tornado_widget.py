@@ -4,8 +4,17 @@ import json
 from pathlib import Path
 
 import pandas as pd
-from dash import html, dcc, callback_context, Dash, dash_table
-from dash.dependencies import Input, Output, State, ClientsideFunction
+from dash import (
+    html,
+    dcc,
+    callback_context,
+    Dash,
+    dash_table,
+    Input,
+    Output,
+    State,
+    ClientsideFunction,
+)
 from dash.exceptions import PreventUpdate
 import webviz_core_components as wcc
 from webviz_config import WebvizSettings

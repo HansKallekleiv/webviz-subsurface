@@ -7,8 +7,7 @@
 from typing import Callable, Dict, List, Tuple, Union, Any
 
 import pandas as pd
-from dash import html, dcc, Dash, callback_context
-from dash.dependencies import Input, Output, State
+from dash import html, dcc, Dash, callback_context, Input, Output, State
 from dash.exceptions import PreventUpdate
 import webviz_core_components as wcc
 from webviz_config.common_cache import CACHE

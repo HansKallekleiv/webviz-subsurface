@@ -1,8 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-from dash import html, Dash
-from dash.dependencies import Input, Output
+from dash import html, Dash, Input, Output
 from dash.exceptions import PreventUpdate
 import webviz_core_components as wcc
 from webviz_config import WebvizPluginABC

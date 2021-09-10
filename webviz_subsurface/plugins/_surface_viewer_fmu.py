@@ -5,8 +5,7 @@ import io
 
 import pandas as pd
 import xtgeo
-from dash import html, dcc, Dash, callback_context
-from dash.dependencies import Input, Output, State
+from dash import html, dcc, Dash, callback_context, Input, Output, State
 from dash.exceptions import PreventUpdate
 from webviz_subsurface_components import LeafletMap
 import webviz_core_components as wcc

@@ -3,8 +3,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from dash import html, dcc, dash_table, Dash
-from dash.dependencies import Input, Output, State
+from dash import html, dcc, dash_table, Dash, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_daq
 import webviz_core_components as wcc

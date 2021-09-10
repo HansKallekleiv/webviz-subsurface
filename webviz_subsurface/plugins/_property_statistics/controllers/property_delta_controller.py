@@ -1,8 +1,7 @@
 from typing import Tuple, Callable
 
 import pandas as pd
-from dash import html, Dash
-from dash.dependencies import Input, Output, ALL
+from dash import html, Dash, Input, Output, ALL
 import plotly.graph_objects as go
 
 from webviz_subsurface._models import SurfaceLeafletModel

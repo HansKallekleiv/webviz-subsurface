@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
-from dash import html, dcc, dash_table, Dash
-from dash.dependencies import Input, Output
+from dash import html, dcc, dash_table, Dash, Input, Output
 from dash.exceptions import PreventUpdate
 import webviz_core_components as wcc
 from webviz_config import WebvizPluginABC

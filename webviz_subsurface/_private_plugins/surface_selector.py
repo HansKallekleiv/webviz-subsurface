@@ -6,8 +6,7 @@ import json
 import yaml
 import numpy as np
 import pandas as pd
-from dash import html, dcc, Dash, callback_context
-from dash.dependencies import Input, Output, State
+from dash import html, dcc, Dash, callback_context, Input, Output, State
 from dash.exceptions import PreventUpdate
 
 

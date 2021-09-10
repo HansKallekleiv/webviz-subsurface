@@ -9,8 +9,17 @@ from copy import deepcopy
 import yaml
 import numpy as np
 import pandas as pd
-from dash import html, dcc, Dash, callback_context, dash_table
-from dash.dependencies import Input, Output, State, ALL
+from dash import (
+    html,
+    dcc,
+    Dash,
+    callback_context,
+    dash_table,
+    Input,
+    Output,
+    State,
+    ALL,
+)
 from dash.exceptions import PreventUpdate
 import webviz_core_components as wcc
 from webviz_config.common_cache import CACHE
