@@ -3,6 +3,7 @@ import warnings
 
 import xtgeo
 from dash import Dash, callback_context, no_update, Input, Output, State
+from dash.dash import _NoUpdate
 from dash.exceptions import PreventUpdate
 
 from webviz_subsurface._models import SurfaceSetModel, SurfaceLeafletModel, WellSetModel
@@ -342,7 +343,7 @@ def update_maps(
     def _update_from_map_click(
         clicked_shape: Optional[Dict],
         _polyline: List[List[float]],
-    ) -> Tuple[str, Union[no_update, str]]:
+    ) -> Tuple[str, Union[_NoUpdate, str]]:
         """Update intersection source and optionally selected well when
         user clicks a shape in map"""
         ctx = callback_context.triggered[0]

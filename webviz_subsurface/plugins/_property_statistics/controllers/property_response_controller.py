@@ -3,6 +3,7 @@ from typing import Tuple, Union, Callable
 import numpy as np
 import pandas as pd
 from dash import Dash, no_update, callback_context, Input, Output, State, ALL
+from dash.dash import _NoUpdate
 from dash.exceptions import PreventUpdate
 
 from webviz_subsurface._models import SurfaceLeafletModel
@@ -64,11 +65,11 @@ def property_response_controller(
     def _update_correlation_figure(
         label: str, ensemble: str
     ) -> Tuple[
-        Union[float, no_update],
-        Union[float, no_update],
-        Union[float, no_update],
+        Union[float, _NoUpdate],
+        Union[float, _NoUpdate],
+        Union[float, _NoUpdate],
         list,
-        Union[dict, no_update],
+        Union[dict, _NoUpdate],
         bool,
     ]:
         if label is not None:
