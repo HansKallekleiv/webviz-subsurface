@@ -2,7 +2,7 @@ from typing import List, Union, Tuple, Callable
 from pathlib import Path
 import json
 import io
-
+from timeit import default_timer
 import pandas as pd
 import xtgeo
 from dash import html, dcc, Dash, callback_context, Input, Output, State
@@ -518,7 +518,7 @@ attribute_settings:
             attribute_settings: dict = json.loads(stored_attribute_settings)
             if not isinstance(attribute_settings, dict):
                 raise TypeError("Expected stored attribute_settings to be of type dict")
-
+            start = default_timer()
             if real in ["Mean", "StdDev", "Min", "Max"]:
                 surface = self._surface_ensemble_set_model[
                     ensemble
@@ -571,7 +571,7 @@ attribute_settings:
                     ),
                 ).layer
             ]
-
+            print("Surface loading time", default_timer() - start)
             try:
                 surface3 = calculate_surface_difference(surface, surface2, calculation)
                 if diff_min is not None:
