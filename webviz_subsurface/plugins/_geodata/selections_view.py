@@ -76,6 +76,37 @@ def table_selections_layout(uuid: str, responses, filters, dframe) -> wcc.Select
     )
 
 
+def varviz_selections_layout(uuid: str, filters, responses, dframe) -> wcc.Selectors:
+    return html.Div(
+        children=[
+            wcc.Selectors(
+                label="SELECTORS",
+                children=[
+                    wcc.Dropdown(
+                        label="x",
+                        id={"id": uuid, "selector": "x"},
+                        options=[{"label": elm, "value": elm} for elm in responses],
+                        value=responses[0],
+                        clearable=False,
+                    ),
+                    wcc.Dropdown(
+                        label="y",
+                        id={"id": uuid, "selector": "y"},
+                        options=[{"label": elm, "value": elm} for elm in responses],
+                        value=responses[-1],
+                        clearable=False,
+                    ),
+                ],
+            ),
+            wcc.Selectors(
+                label="FILTERS",
+                open_details=True,
+                children=[filter_dropdowns(uuid=uuid, filters=filters, dframe=dframe)],
+            ),
+        ]
+    )
+
+
 def filter_dropdowns(uuid: str, filters, dframe) -> html.Div:
     """Makes dropdowns for each selector"""
     dropdowns: List[html.Div] = []

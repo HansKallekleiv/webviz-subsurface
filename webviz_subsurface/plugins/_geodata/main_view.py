@@ -3,11 +3,18 @@ from typing import Callable
 from dash import html, dcc
 import webviz_core_components as wcc
 from webviz_config import WebvizConfigTheme
-from .selections_view import table_selections_layout
+from .selections_view import table_selections_layout, varviz_selections_layout
 
 
 def main_view(
-    get_uuid: Callable, theme: WebvizConfigTheme, responses, filters, dframe
+    get_uuid: Callable,
+    theme: WebvizConfigTheme,
+    responses,
+    filters,
+    channel_dframe,
+    variogram_dframe,
+    variogram_filters,
+    variogram_responses,
 ) -> dcc.Tabs:
 
     tabs = [
@@ -29,7 +36,22 @@ def main_view(
                         uuid=get_uuid("selections-table"),
                         responses=responses,
                         filters=filters,
-                        dframe=dframe,
+                        dframe=channel_dframe,
+                    )
+                ],
+            ),
+        ),
+        wcc.Tab(
+            label="Variogram visualization",
+            value="varviz",
+            children=tab_view_layout(
+                main_layout=html.Div(id=get_uuid("main-varviz")),
+                sidebar_layout=[
+                    varviz_selections_layout(
+                        uuid=get_uuid("selections-varviz"),
+                        dframe=variogram_dframe,
+                        filters=variogram_filters,
+                        responses=variogram_responses,
                     )
                 ],
             ),

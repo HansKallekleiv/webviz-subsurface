@@ -10,7 +10,7 @@ from webviz_config import WebvizSettings
 from webviz_config.webviz_store import webvizstore
 from webviz_config.common_cache import CACHE
 from .main_view import main_view
-
+from .varviz_callback import varviz_callback
 
 class GeoData(WebvizPluginABC):
     def __init__(
@@ -33,10 +33,20 @@ class GeoData(WebvizPluginABC):
         self.theme = webviz_settings.theme
 
         self.filters = ["Delft3D model", "Formation", "Attribute"]
+        self.variogram_filters = [
+            "Delft3D model",
+            "Attribute",
+            "Identifier",
+            "Indicator",
+        ]
+        self.variogram_responses = [
+            col for col in self.csvfile_variogram if col not in self.variogram_filters
+        ]
+        print(self.variogram_responses)
         self.responses = [
             col for col in self.csvfile_channel if col not in self.filters
         ]
-
+        print(self.csvfile_variogram)
         self.set_callbacks(app)
 
     @property
@@ -48,7 +58,10 @@ class GeoData(WebvizPluginABC):
                     theme=self.theme,
                     responses=self.responses,
                     filters=self.filters,
-                    dframe=self.csvfile_channel,
+                    channel_dframe=self.csvfile_channel,
+                    variogram_dframe=self.csvfile_variogram,
+                    variogram_filters=self.variogram_filters,
+                    variogram_responses=self.variogram_responses,
                 ),
             ],
         )
@@ -85,6 +98,7 @@ class GeoData(WebvizPluginABC):
                 groups=selection["Group by"],
             )
 
+        varviz_callback(app=app, get_uuid=self.uuid,dframe= self.csvfile_variogram)
 
 def make_table(
     dframe: pd.DataFrame,
