@@ -71,6 +71,7 @@ setup(
             "AssistedHistoryMatchingAnalysis = webviz_subsurface.plugins:AssistedHistoryMatchingAnalysis",
             "WellCompletions = webviz_subsurface.plugins:WellCompletions",
             "WellLogViewer = webviz_subsurface.plugins:WellLogViewer",
+            "GeoData = webviz_subsurface.plugins:GeoData",
         ],
         "ert": ["webviz_subsurface_jobs = webviz_subsurface.ert_jobs.jobs"],
         "console_scripts": [
