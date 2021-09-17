@@ -45,7 +45,21 @@ def main_view(
             label="Variogram visualization",
             value="varviz",
             children=tab_view_layout(
-                main_layout=html.Div(id=get_uuid("main-varviz")),
+                main_layout=wcc.FlexBox(
+                    [
+                        wcc.Frame(
+                            style={"flex": 5, "height": "91vh"},
+                            children=wcc.Graph(
+                                style={"height": "91vh"}, id=get_uuid("varviz-scatter")
+                            ),
+                        ),
+                        wcc.Frame(
+                            id=get_uuid("varviz-image-wrapper"),
+                            style={"flex": 2, "height": "91vh"},
+                            children=[],
+                        ),
+                    ]
+                ),
                 sidebar_layout=[
                     varviz_selections_layout(
                         uuid=get_uuid("selections-varviz"),

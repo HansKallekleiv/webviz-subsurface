@@ -96,6 +96,31 @@ def varviz_selections_layout(uuid: str, filters, responses, dframe) -> wcc.Selec
                         value=responses[-1],
                         clearable=False,
                     ),
+                    wcc.Dropdown(
+                        label="color",
+                        id={"id": uuid, "selector": "color"},
+                        options=[{"label": elm, "value": elm} for elm in responses],
+                        value=None,
+                        clearable=True,
+                    ),
+                    wcc.Dropdown(
+                        label="size",
+                        id={"id": uuid, "selector": "size"},
+                        options=[{"label": elm, "value": elm} for elm in responses],
+                        value=None,
+                        clearable=True,
+                    ),
+                    wcc.Dropdown(
+                        label="trendline",
+                        id={"id": uuid, "selector": "trendline"},
+                        options=[
+                            {"label": "Ordinary Least Square", "value": "ols"},
+                            {"label": "Locally weighted smoothing", "value": "lowess"},
+                        ],
+                        value=None,
+                        placeholder="Select algorithm",
+                        clearable=True,
+                    ),
                 ],
             ),
             wcc.Selectors(
