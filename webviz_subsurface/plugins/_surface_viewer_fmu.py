@@ -18,6 +18,8 @@ from webviz_subsurface._datainput.well import make_well_layers
 from webviz_subsurface._private_plugins.surface_selector import SurfaceSelector
 from webviz_subsurface._models import SurfaceLeafletModel, SurfaceSetModel
 
+import webviz_subsurface_components as wsc
+
 
 class SurfaceViewerFMU(WebvizPluginABC):
     """Covisualize surfaces from an ensemble.
@@ -386,67 +388,29 @@ attribute_settings:
                         html.Div(
                             style={
                                 "height": self.map_height,
+                                "position": "relative",
                                 "margin": "10px",
                                 "flex": 4,
                             },
                             children=[
-                                LeafletMap(
-                                    syncedMaps=[self.uuid("map2"), self.uuid("map3")],
+                                wsc.DeckGLMapViewer(
                                     id=self.uuid("map"),
-                                    layers=[],
-                                    unitScale={},
-                                    autoScaleMap=True,
-                                    minZoom=-19,
-                                    updateMode="update",
-                                    mouseCoords={"position": "bottomright"},
-                                    colorBar={"position": "bottomleft"},
-                                    switch={
-                                        "value": False,
-                                        "disabled": False,
-                                        "label": "Hillshading",
-                                    },
                                 ),
                             ],
                         ),
                         html.Div(
-                            style={"margin": "10px", "flex": 4},
+                            style={"position": "relative", "margin": "10px", "flex": 4},
                             children=[
-                                LeafletMap(
-                                    syncedMaps=[self.uuid("map"), self.uuid("map3")],
+                                wsc.DeckGLMapViewer(
                                     id=self.uuid("map2"),
-                                    layers=[],
-                                    unitScale={},
-                                    autoScaleMap=True,
-                                    minZoom=-19,
-                                    updateMode="update",
-                                    mouseCoords={"position": "bottomright"},
-                                    colorBar={"position": "bottomleft"},
-                                    switch={
-                                        "value": False,
-                                        "disabled": False,
-                                        "label": "Hillshading",
-                                    },
                                 )
                             ],
                         ),
                         html.Div(
-                            style={"margin": "10px", "flex": 4},
+                            style={"position": "relative", "margin": "10px", "flex": 4},
                             children=[
-                                LeafletMap(
-                                    syncedMaps=[self.uuid("map"), self.uuid("map2")],
+                                wsc.DeckGLMapViewer(
                                     id=self.uuid("map3"),
-                                    layers=[],
-                                    unitScale={},
-                                    autoScaleMap=True,
-                                    minZoom=-19,
-                                    updateMode="update",
-                                    mouseCoords={"position": "bottomright"},
-                                    colorBar={"position": "bottomleft"},
-                                    switch={
-                                        "value": False,
-                                        "disabled": False,
-                                        "label": "Hillshading",
-                                    },
                                 )
                             ],
                         ),
@@ -463,10 +427,12 @@ attribute_settings:
     def set_callbacks(self, app: Dash) -> None:
         @app.callback(
             [
-                Output(self.uuid("map"), "layers"),
-                Output(self.uuid("map2"), "layers"),
-                Output(self.uuid("map3"), "layers"),
-                Output(self.uuid("map3-label"), "children"),
+                Output(self.uuid("map"), "deckglSpecBase"),
+                Output(self.uuid("map2"), "deckglSpecBase"),
+                Output(self.uuid("map3"), "deckglSpecBase"),
+                Output(self.uuid("map"), "resources"),
+                Output(self.uuid("map2"), "resources"),
+                Output(self.uuid("map3"), "resources"),
             ],
             [
                 Input(self.selector.storage_id, "data"),
@@ -476,12 +442,12 @@ attribute_settings:
                 Input(self.uuid("ensemble2"), "value"),
                 Input(self.uuid("realization2"), "value"),
                 Input(self.uuid("calculation"), "value"),
-                Input(self.uuid("attribute-settings"), "data"),
-                Input(self.uuid("truncate-diff-min"), "value"),
-                Input(self.uuid("truncate-diff-max"), "value"),
-                Input(self.uuid("map"), "switch"),
-                Input(self.uuid("map2"), "switch"),
-                Input(self.uuid("map3"), "switch"),
+                State(self.uuid("map"), "deckglSpecBase"),
+                State(self.uuid("map2"), "deckglSpecBase"),
+                State(self.uuid("map3"), "deckglSpecBase"),
+                State(self.uuid("map"), "resources"),
+                State(self.uuid("map2"), "resources"),
+                State(self.uuid("map3"), "resources"),
             ],
         )
         # pylint: disable=too-many-arguments, too-many-locals
@@ -493,12 +459,12 @@ attribute_settings:
             ensemble2: str,
             real2: str,
             calculation: str,
-            stored_attribute_settings: str,
-            diff_min: Union[int, float, None],
-            diff_max: Union[int, float, None],
-            hillshade: dict,
-            hillshade2: dict,
-            hillshade3: dict,
+            map_spec,
+            map2_spec,
+            map3_spec,
+            map_resources,
+            map2_resources,
+            map3_resources,
         ) -> Tuple[List[dict], List[dict], List[dict], str]:
             ctx = callback_context.triggered
             if not ctx or not stored_selector_data or not stored_selector2_data:
@@ -515,9 +481,6 @@ attribute_settings:
             data2: dict = json.loads(stored_selector2_data)
             if not isinstance(data, dict) or not isinstance(data2, dict):
                 raise TypeError("Selector data payload must be of type dict")
-            attribute_settings: dict = json.loads(stored_attribute_settings)
-            if not isinstance(attribute_settings, dict):
-                raise TypeError("Expected stored attribute_settings to be of type dict")
 
             if real in ["Mean", "StdDev", "Min", "Max"]:
                 surface = self._surface_ensemble_set_model[
@@ -538,69 +501,36 @@ attribute_settings:
                 surface2 = self._surface_ensemble_set_model[
                     ensemble2
                 ].get_realization_surface(**data2, realization=int(real2))
-
-            surface_layers: List[dict] = [
-                SurfaceLeafletModel(
-                    surface,
-                    name="surface",
-                    colors=attribute_settings.get(data["attribute"], {}).get("color"),
-                    apply_shading=hillshade.get("value", False),
-                    clip_min=attribute_settings.get(data["attribute"], {}).get(
-                        "min", None
-                    ),
-                    clip_max=attribute_settings.get(data["attribute"], {}).get(
-                        "max", None
-                    ),
-                    unit=attribute_settings.get(data["attribute"], {}).get("unit", " "),
-                ).layer
-            ]
-            surface_layers2: List[dict] = [
-                SurfaceLeafletModel(
-                    surface2,
-                    name="surface2",
-                    colors=attribute_settings.get(data2["attribute"], {}).get("color"),
-                    apply_shading=hillshade2.get("value", False),
-                    clip_min=attribute_settings.get(data2["attribute"], {}).get(
-                        "min", None
-                    ),
-                    clip_max=attribute_settings.get(data2["attribute"], {}).get(
-                        "max", None
-                    ),
-                    unit=attribute_settings.get(data2["attribute"], {}).get(
-                        "unit", " "
-                    ),
-                ).layer
-            ]
-
+            map_handler = wsc.DeckGLMapUpdater(map_spec)
+            map2_handler = wsc.DeckGLMapUpdater(map2_spec)
+            map3_handler = wsc.DeckGLMapUpdater(map3_spec)
+            map_handler.update_map_data(surface)
+            map2_handler.update_map_data(surface2)
             try:
                 surface3 = calculate_surface_difference(surface, surface2, calculation)
-                if diff_min is not None:
-                    surface3.values[surface3.values <= diff_min] = diff_min
-                if diff_max is not None:
-                    surface3.values[surface3.values >= diff_max] = diff_max
-                diff_layers: List[dict] = []
-                diff_layers.append(
-                    SurfaceLeafletModel(
-                        surface3,
-                        name="surface3",
-                        colors=attribute_settings.get(data["attribute"], {}).get(
-                            "color"
-                        ),
-                        apply_shading=hillshade3.get("value", False),
-                    ).layer
-                )
-                error_label = ""
+                # if diff_min is not None:
+                #     surface3.values[surface3.values <= diff_min] = diff_min
+                # if diff_max is not None:
+                #     surface3.values[surface3.values >= diff_max] = diff_max
+                map3_handler.update_map_data(surface3)
             except ValueError:
                 diff_layers = []
                 error_label = (
                     "Cannot calculate because the surfaces have different geometries"
                 )
 
-            if self.well_layer:
-                surface_layers.append(self.well_layer)
-                surface_layers2.append(self.well_layer)
-                diff_layers.append(self.well_layer)
-            return (surface_layers, surface_layers2, diff_layers, error_label)
+            # if self.well_layer:
+            #     surface_layers.append(self.well_layer)
+            #     surface_layers2.append(self.well_layer)
+            #     diff_layers.append(self.well_layer)
+            return (
+                map_handler._spec,
+                map2_handler._spec,
+                map3_handler._spec,
+                map_handler.resource_patch,
+                map2_handler.resource_patch,
+                map3_handler.resource_patch,
+            )
 
         def _update_from_btn(
             _n_prev: int, _n_next: int, current_value: str, options: List[dict]
