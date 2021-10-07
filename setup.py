@@ -33,6 +33,7 @@ setup(
             "_abbreviations/abbreviation_data/*.json",
             "_assets/css/*.css",
             "_assets/js/*.js",
+            "_assets/colormaps/*.png",
             "ert_jobs/config_jobs/*",
         ]
     },
@@ -46,6 +47,7 @@ setup(
             "InplaceVolumes = webviz_subsurface.plugins:InplaceVolumes",
             "InplaceVolumesOneByOne = webviz_subsurface.plugins:InplaceVolumesOneByOne",
             "LinePlotterFMU = webviz_subsurface.plugins:LinePlotterFMU",
+            "MapViewerFMU = webviz_subsurface.plugins:MapViewerFMU",
             "MorrisPlot = webviz_subsurface.plugins:MorrisPlot",
             "ParameterAnalysis = webviz_subsurface.plugins:ParameterAnalysis",
             "ParameterCorrelation = webviz_subsurface.plugins:ParameterCorrelation",
@@ -89,6 +91,7 @@ setup(
         "ecl2df>=0.13.0; sys_platform=='linux'",
         "fmu-ensemble>=1.2.3",
         "fmu-tools>=1.8",
+        "jsonpatch",
         "jsonschema>=3.2.0",
         "opm>=2020.10.1; sys_platform=='linux'",
         "pandas>=1.1.5",
@@ -99,7 +102,7 @@ setup(
         "statsmodels>=0.12.1",  # indirect dependency through https://plotly.com/python/linear-fits/
         "webviz-config>=0.3.1",
         "webviz-core-components>=0.5.1",
-        "webviz-subsurface-components>=0.4.5",
+        "webviz-subsurface-components",
         "xtgeo>=2.14",
     ],
     extras_require={"tests": TESTS_REQUIRE},
