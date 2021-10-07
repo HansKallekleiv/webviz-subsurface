@@ -2,6 +2,7 @@ import io
 import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import hashlib
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,7 @@ class SurfaceSetModel:
 
     def __init__(self, surface_table: pd.DataFrame):
         self._surface_table = surface_table
+        self._surface_table["id"] = self._surface_table["path"].apply(_make_hash_string)
 
     @property
     def realizations(self) -> list:
@@ -62,11 +64,9 @@ class SurfaceSetModel:
             for realization in realizations
         ]
 
-    def get_realization_surface(
+    def _get_path_from_selections(
         self, name: str, attribute: str, realization: int, date: Optional[str] = None
-    ) -> xtgeo.RegularSurface:
-        """Returns a Xtgeo surface instance of a single realization surface"""
-
+    ) -> str:
         columns = ["name", "attribute", "REAL"]
         column_values = [name, attribute, realization]
         if date is not None:
@@ -77,6 +77,63 @@ class SurfaceSetModel:
             name=name, attribute=attribute, date=date, realizations=[int(realization)]
         )
         if len(df.index) == 0:
+            return None
+        if len(df.index) > 1:
+            warnings.warn(
+                f"Multiple surfaces found for name: {name}, attribute: {attribute}, date: {date}, "
+                f"realization: {realization}. Returning first object"
+            )
+        return get_stored_surface_path(df.iloc[0]["path"])
+
+    def get_id_from_selections(
+        self, name: str, attribute: str, realization: int, date: Optional[str] = None
+    ) -> str:
+        columns = ["name", "attribute", "REAL"]
+        column_values = [name, attribute, realization]
+        if date is not None:
+            columns.append("date")
+            column_values.append(date)
+
+        df = self._filter_surface_table(
+            name=name, attribute=attribute, date=date, realizations=[int(realization)]
+        )
+        if len(df.index) == 0:
+            return None
+        if len(df.index) > 1:
+            warnings.warn(
+                f"Multiple surfaces found for name: {name}, attribute: {attribute}, date: {date}, "
+                f"realization: {realization}. Returning first object"
+            )
+        print(len(df.index))
+        return df.iloc[0]["id"]
+
+    def _get_path_from_id(self, hash: str) -> str:
+        df = self._surface_table.loc[self._surface_table["id"] == hash]
+        if len(df.index) == 0:
+            warnings.warn("No surface path found for the given id.")
+        if len(df.index) > 1:
+            warnings.warn("multiple surfaces found the given id. Returning first id.")
+        return df.iloc[0]["path"]
+
+    def _get_id_from_path(self, path: str) -> str:
+        df = self._surface_table.loc[self._surface_table["path"] == path]
+        if len(df.index) == 0:
+            warnings.warn("No surface path found for the given path.")
+        if len(df.index) > 1:
+            warnings.warn(
+                "multiple surfaces found the given path. Returning first path."
+            )
+        return df.iloc[0]["id"]
+
+    def get_realization_surface(
+        self, name: str, attribute: str, realization: int, date: Optional[str] = None
+    ) -> xtgeo.RegularSurface:
+        """Returns a Xtgeo surface instance of a single realization surface"""
+        path = self._get_path_from_selections(
+            name=name, attribute=attribute, realization=realization, date=date
+        )
+
+        if path is None:
             warnings.warn(
                 f"No surface found for name: {name}, attribute: {attribute}, date: {date}, "
                 f"realization: {realization}"
@@ -84,12 +141,8 @@ class SurfaceSetModel:
             return xtgeo.RegularSurface(
                 ncol=1, nrow=1, xinc=1, yinc=1
             )  # 1's as input is required
-        if len(df.index) > 1:
-            warnings.warn(
-                f"Multiple surfaces found for name: {name}, attribute: {attribute}, date: {date}, "
-                f"realization: {realization}. Returning first surface"
-            )
-        return xtgeo.surface_from_file(get_stored_surface_path(df.iloc[0]["path"]))
+
+        return xtgeo.surface_from_file(get_stored_surface_path(path))
 
     def _filter_surface_table(
         self,
@@ -281,3 +334,8 @@ def get_statistical_surface(
     return xtgeo.RegularSurface(
         ncol=1, nrow=1, xinc=1, yinc=1
     )  # 1's as input is required
+
+
+def _make_hash_string(string_to_hash: str) -> str:
+    # There is no security risk here and chances of collision should be very slim
+    return hashlib.md5(string_to_hash.encode()).hexdigest()  # nosec
