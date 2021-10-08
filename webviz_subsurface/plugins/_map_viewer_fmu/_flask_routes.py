@@ -24,7 +24,7 @@ def set_routes(app: Dash, surface_ensemble_set_model) -> None:
             url.save(f"/tmp/{surface_id}.png", format="png")
         return send_file(f"/tmp/{surface_id}.png", mimetype="image/png")
 
-    def _send_dummy():
+    def _send_undef_surface():
         surface = xtgeo.RegularSurface(ncol=1, nrow=1, xinc=1, yinc=1)
         surface_data = wsc.XtgeoSurfaceArray(surface)
         url = surface_data.map_image
@@ -42,7 +42,7 @@ def set_routes(app: Dash, surface_ensemble_set_model) -> None:
         )
 
     app.server.view_functions["_send_surface_as_png"] = _send_surface_as_png
-    app.server.view_functions["_send_dummy"] = _send_dummy
+    app.server.view_functions["_send_undef_surface"] = _send_undef_surface
     app.server.view_functions["_send_colormap"] = _send_colormap
 
     app.server.add_url_rule(
@@ -50,8 +50,8 @@ def set_routes(app: Dash, surface_ensemble_set_model) -> None:
         "_send_surface_as_png",
     )
     app.server.add_url_rule(
-        "/image/dummy.png",
-        "_send_dummy",
+        "/surface/undef.png",
+        "_send_undef_surface",
     )
     app.server.add_url_rule(
         "/colormaps/<colormap>.png",

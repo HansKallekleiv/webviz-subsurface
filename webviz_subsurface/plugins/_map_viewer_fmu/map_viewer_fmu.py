@@ -6,10 +6,22 @@ from typing import Callable, List, Tuple, Union
 from flask import send_file
 import pandas as pd
 import webviz_core_components as wcc
+from webviz_core_components.wrapped_components.flexbox import FlexBox
 import xtgeo
-from dash import Dash, Input, Output, State, callback_context, dcc, html
+from dash import (
+    Dash,
+    Input,
+    Output,
+    State,
+    callback_context,
+    dcc,
+    html,
+    callback,
+    no_update,
+)
 from dash.exceptions import PreventUpdate
 from webviz_config import WebvizPluginABC, WebvizSettings
+from webviz_config.utils._dash_component_utils import calculate_slider_step
 from webviz_config.webviz_store import webvizstore
 from webviz_subsurface_components import LeafletMap
 
@@ -18,9 +30,10 @@ from webviz_subsurface._datainput.well import make_well_layers
 from webviz_subsurface._models import SurfaceLeafletModel, SurfaceSetModel
 from webviz_subsurface._private_plugins.surface_selector import SurfaceSelector
 
-import webviz_subsurface_components as wsc
-from ._scratch_surface_provider import ScratchSurfaceProvider
+
+from ._deckgl_map_aio import DeckGLMapAIO
 from ._flask_routes import set_routes
+from .xtgeo_utils import XtgeoSurfaceArray
 
 
 class MapViewerFMU(WebvizPluginABC):
@@ -48,7 +61,6 @@ class MapViewerFMU(WebvizPluginABC):
 
         # Find surfaces
         self._surface_table = find_surfaces(self.ens_paths)
-        self._surface_provider = ScratchSurfaceProvider(self._surface_table)
 
         # Extract realizations and sensitivity information
         self.ens_df = get_realizations(
@@ -137,7 +149,7 @@ class MapViewerFMU(WebvizPluginABC):
                         html.Div(
                             style={
                                 "display": "grid",
-                                "gridTemplateColumns": "6fr 1fr 1fr",
+                                "gridTemplateColumns": "12fr 1fr 1fr",
                             },
                             children=[
                                 dcc.Dropdown(
@@ -227,14 +239,13 @@ class MapViewerFMU(WebvizPluginABC):
             id=self.uuid("layout"),
             children=[
                 wcc.FlexBox(
-                    style={"fontSize": "1rem"},
                     children=[
                         wcc.Frame(
                             style={"flex": 1, "height": "90vh"},
                             id=self.uuid("settings-view1"),
                             children=[
                                 wcc.Selectors(
-                                    label="Surface selection",
+                                    label="Surface data",
                                     children=[
                                         self.selector.layout,
                                         self.ensemble_layout(
@@ -248,7 +259,7 @@ class MapViewerFMU(WebvizPluginABC):
                                     ],
                                 ),
                                 wcc.Selectors(
-                                    label="Colormap selection",
+                                    label="Surface coloring",
                                     children=[
                                         wcc.Dropdown(
                                             label="Colormap",
@@ -263,6 +274,25 @@ class MapViewerFMU(WebvizPluginABC):
                                         wcc.RangeSlider(
                                             label="Value range",
                                             id=self.uuid("colormap-range"),
+                                            updatemode="drag",
+                                            tooltip={
+                                                "always_visible": True,
+                                                "placement": "bottomLeft",
+                                            },
+                                        ),
+                                        wcc.Checklist(
+                                            id=self.uuid("colormap-range-keep"),
+                                            options=[
+                                                {
+                                                    "label": "Keep range",
+                                                    "value": "keep",
+                                                }
+                                            ],
+                                        ),
+                                        html.Button(
+                                            "Reset range",
+                                            style={"marginTop": "5px"},
+                                            id=self.uuid("colormap-range-reset"),
                                         ),
                                     ],
                                 ),
@@ -273,7 +303,7 @@ class MapViewerFMU(WebvizPluginABC):
                                 "flex": 5,
                             },
                             children=[
-                                wsc.DeckGLMapAIO(
+                                DeckGLMapAIO(
                                     app=self._app, aio_id=self.uuid("mapview")
                                 ),
                             ],
@@ -283,35 +313,39 @@ class MapViewerFMU(WebvizPluginABC):
                             data=json.dumps(self.attribute_settings),
                             storage_type="session",
                         ),
+                        dcc.Store(
+                            id=self.uuid("surface-geometry"),
+                            data={
+                                "mapImage": f"/surface/undef.png",
+                                "mapBounds": [0, 1, 0, 1],
+                                "mapRange": [0, 1],
+                                "mapTarget": [0.5, 0.5, 0],
+                            },
+                        ),
                     ],
                 ),
             ],
         )
 
     def set_callbacks(self, app: Dash) -> None:
-        @app.callback(
-            Output(wsc.DeckGLMapAIO.ids.map(self.uuid("mapview")), "resources"),
-            [
-                Input(self.selector.storage_id, "data"),
-                Input(self.uuid("ensemble"), "value"),
-                Input(self.uuid("realization"), "value"),
-                Input(self.uuid("attribute-settings"), "data"),
-                State(wsc.DeckGLMapAIO.ids.map(self.uuid("mapview")), "resources"),
-            ],
+        @callback(
+            Output(self.uuid("surface-geometry"), "data"),
+            Input(self.selector.storage_id, "data"),
+            Input(self.uuid("ensemble"), "value"),
+            Input(self.uuid("realization"), "value"),
+            Input(self.uuid("attribute-settings"), "data"),
         )
-        # pylint: disable=too-many-arguments, too-many-locals
-        def _set_base_layer(
+        def _set_stored_surface_geometry(
             stored_selector_data: str,
             ensemble: str,
             real: str,
             stored_attribute_settings: str,
-            current_resources,
         ):
             ctx = callback_context.triggered
 
             if not ctx or not stored_selector_data:
                 raise PreventUpdate
-            current_resources = current_resources if current_resources else {}
+
             data: dict = json.loads(stored_selector_data)
             if not isinstance(data, dict):
                 raise TypeError("Selector data payload must be of type dict")
@@ -331,31 +365,73 @@ class MapViewerFMU(WebvizPluginABC):
             surface = self._surface_ensemble_set_model[
                 ensemble
             ].get_realization_surface(**data, realization=int(real))
-            surface_data = wsc.XtgeoSurfaceArray(surface.copy())
+            surface_data = XtgeoSurfaceArray(surface.copy())
+            return {
+                "mapImage": f"/surface/{ensemble}/{surface_id}.png",
+                "mapBounds": surface_data.map_bounds,
+                "mapRange": [surface_data.min_val, surface_data.max_val],
+                "mapTarget": surface_data.view_target,
+            }
 
-            current_resources.update(
-                {
-                    "mapImage": f"/surface/{ensemble}/{surface_id}.png",
-                    "mapBounds": surface_data.map_bounds,
-                    "mapRange": [surface_data.min_val, surface_data.max_val],
-                    "mapTarget": surface_data.view_target,
-                }
-            )
+        @callback(
+            Output(DeckGLMapAIO.ids.map(self.uuid("mapview")), "resources"),
+            Input(self.uuid("surface-geometry"), "data"),
+            State(DeckGLMapAIO.ids.map(self.uuid("mapview")), "resources"),
+        )
+        def _update_deckgl_resources(
+            surface_geometry,
+            current_resources,
+        ):
+            current_resources.update(**surface_geometry)
             return current_resources
 
-        @app.callback(
-            Output(wsc.DeckGLMapAIO.ids.colormap_image(self.uuid("mapview")), "data"),
+        @callback(
+            Output(DeckGLMapAIO.ids.colormap_image(self.uuid("mapview")), "data"),
             Input(self.uuid("colormap-select"), "value"),
         )
         def _update_color_map_image(colormap):
             return colormap
 
-        @app.callback(
-            Output(wsc.DeckGLMapAIO.ids.colormap_range(self.uuid("mapview")), "data"),
+        @callback(
+            Output(DeckGLMapAIO.ids.colormap_range(self.uuid("mapview")), "data"),
             Input(self.uuid("colormap-range"), "value"),
         )
         def _update_color_map_range(colormap_range):
             return colormap_range
+
+        @callback(
+            Output(self.uuid("colormap-range"), "min"),
+            Output(self.uuid("colormap-range"), "max"),
+            Output(self.uuid("colormap-range"), "step"),
+            Output(self.uuid("colormap-range"), "value"),
+            Output(self.uuid("colormap-range"), "marks"),
+            Input(self.uuid("surface-geometry"), "data"),
+            Input(self.uuid("colormap-range-keep"), "value"),
+            Input(self.uuid("colormap-range-reset"), "n_clicks"),
+            State(self.uuid("colormap-range"), "value"),
+        )
+        def _update_colormap_range(surface_geometry, keep, reset, current_val):
+            ctx = callback_context.triggered[0]["prop_id"]
+
+            min_val = surface_geometry["mapRange"][0]
+            max_val = surface_geometry["mapRange"][1]
+            if ctx == ".":
+                value = no_update
+            if "colormap-range-reset" in ctx or not keep or current_val is None:
+                value = [min_val, max_val]
+            else:
+                value = current_val
+
+            return (
+                min_val,
+                max_val,
+                calculate_slider_step(min_value=min_val, max_value=max_val, steps=100),
+                value,
+                {
+                    str(min_val): {"label": f"{min_val:.2f}"},
+                    str(max_val): {"label": f"{max_val:.2f}"},
+                },
+            )
 
         def _update_from_btn(
             _n_prev: int, _n_next: int, current_value: str, options: List[dict]
@@ -375,7 +451,7 @@ class MapViewerFMU(WebvizPluginABC):
             return current_value
 
         for btn_name in ["ensemble", "realization", "ensemble2", "realization2"]:
-            app.callback(
+            callback(
                 Output(self.uuid(f"{btn_name}"), "value"),
                 [
                     Input(self.uuid(f"{btn_name}-prev"), "n_clicks"),
