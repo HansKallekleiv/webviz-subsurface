@@ -6,8 +6,8 @@ from dash.exceptions import PreventUpdate
 
 from webviz_subsurface._models import SurfaceSetModel
 from ..utils.formatting import format_date
-from ..classes.surface_context import SurfaceContext
-from ..classes.surface_mode import SurfaceMode
+from ..types.surface_context import SurfaceContext
+from ..types.surface_mode import SurfaceMode
 from ..layout.surface_selector_view import SurfaceSelectorID
 
 

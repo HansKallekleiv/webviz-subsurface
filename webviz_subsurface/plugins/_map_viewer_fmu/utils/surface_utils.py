@@ -7,7 +7,7 @@ import numpy as np
 import xtgeo
 from PIL import Image
 
-from ..classes.surface_context import SurfaceContext
+from ..types.surface_context import SurfaceContext
 
 
 def surface_to_deckgl_spec(surface: xtgeo.RegularSurface) -> dict:

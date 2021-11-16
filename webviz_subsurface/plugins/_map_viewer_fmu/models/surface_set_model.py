@@ -11,8 +11,8 @@ import xtgeo
 from webviz_config.common_cache import CACHE
 from webviz_config.webviz_store import webvizstore
 
-from ..classes.surface_context import SurfaceContext
-from ..classes.surface_mode import SurfaceMode
+from ..types.surface_context import SurfaceContext
+from ..types.surface_mode import SurfaceMode
 from ..utils.surface_utils import (
     surface_context_to_url,
     surface_to_deckgl_spec,

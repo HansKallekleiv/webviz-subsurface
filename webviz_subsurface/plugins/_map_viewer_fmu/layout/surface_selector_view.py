@@ -7,14 +7,14 @@ from webviz_subsurface._models import SurfaceSetModel
 from webviz_subsurface._private_plugins.surface_selector import format_date
 
 from ..utils.formatting import format_date
-from ..classes.surface_mode import SurfaceMode
+from ..types.surface_mode import SurfaceMode
 
 
 class SurfaceSelectorLabel(Enum):
     WRAPPER = "Surface data"
-    ATTRIBUTE = "Attribute"
-    NAME = "Name"
-    DATE = "Timestep"
+    ATTRIBUTE = "Surface attribute"
+    NAME = "Surface name / zone"
+    DATE = "Surface time interval"
     ENSEMBLE = "Ensemble"
     MODE = "Mode"
     REALIZATIONS = "#Reals"
