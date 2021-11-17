@@ -16,17 +16,21 @@ from dash.exceptions import PreventUpdate
 from webviz_subsurface_components import DeckGLMap
 from ._deckgl_map_controller import DeckGLMapController
 
+from webviz_subsurface._components.deckgl_map_aio.deckgl_map_layers_model import (
+    DeckGLMapLayersModel,
+)
+
 
 def colormap_spec() -> Dict:
     return {
         "@@type": "ColormapLayer",
-        # pylint: disable=line-too-long
+        "name": "Color map",
+        "selected": True,
         "colormap": "/colormaps/viridis_r.png",
         "bounds": "@@#resources.mapBounds",
         "colorMapRange": [0, 1],
         "image": "@@#resources.mapImage",
         "valueRange": "@@#resources.mapRange",
-        "id": "colormap-layer",
         # "pickable": True,
         "valueRange": [0, 1],
     }
@@ -35,7 +39,6 @@ def colormap_spec() -> Dict:
 def hillshading_spec() -> Dict:
     return {
         "@@type": "Hillshading2DLayer",
-        "id": "hillshading-layer",
         "valueRange": "@@#resources.mapRange",
         "bounds": "@@#resources.mapBounds",
         # "pickable": True,
@@ -127,7 +130,8 @@ class DeckGLMapAIO(html.Div):
         """This should be moved to a clientside callback"""
         import json
 
-        print(json.dumps(current_spec, indent=4))
+        layer_model = DeckGLMapLayersModel(current_spec)
+        layer_model.set_property_map()
         raise PreventUpdate
         map_controller = DeckGLMapController(current_spec)
         triggered_prop = callback_context.triggered[0]["prop_id"]
