@@ -2,9 +2,7 @@ from typing import List, Tuple, Callable, Dict
 
 from webviz_subsurface._datainput.fmu_input import find_surfaces
 
-from .models import SurfaceSetModel
-from .types.surface_context import SurfaceContext
-from .types.surface_mode import SurfaceMode
+from .models.surface_set_model import SurfaceSetModel, SurfaceContext, SurfaceMode
 
 
 # def get_surface_contexts(
