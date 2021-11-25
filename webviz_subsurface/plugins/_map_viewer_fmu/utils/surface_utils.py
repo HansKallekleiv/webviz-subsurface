@@ -16,7 +16,13 @@ def surface_to_deckgl_spec(surface: xtgeo.RegularSurface) -> dict:
     view_target = [surface.xmin + width / 2, surface.ymin + height / 2, 0]
     bounds = [surface.xmin, surface.ymin, surface.xmax, surface.ymax]
     value_range = [np.nanmin(surface.values), np.nanmax(surface.values)]
-    return {"mapBounds": bounds, "mapTarget": view_target, "mapRange": value_range}
+    print(bounds)
+    return {
+        "mapBounds": bounds,
+        "mapRotation": 0,  # surface.rotation,
+        "mapTarget": view_target,
+        "mapRange": value_range,
+    }
 
 
 def surface_context_to_url(surface_context: SurfaceContext) -> str:

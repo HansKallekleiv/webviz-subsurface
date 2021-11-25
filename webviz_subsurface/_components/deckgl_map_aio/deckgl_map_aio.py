@@ -33,6 +33,7 @@ def colormap_spec() -> Dict:
         "valueRange": "@@#resources.mapRange",
         # "pickable": True,
         "valueRange": [0, 1],
+        "rotDeg": "@@#resources.mapRotation",
     }
 
 
@@ -43,6 +44,7 @@ def hillshading_spec() -> Dict:
         "bounds": "@@#resources.mapBounds",
         # "pickable": True,
         "image": "@@#resources.mapImage",
+        "rotDeg": "@@#resources.mapRotation",
         # "valueRange": [0, 1],
     }
 
@@ -53,6 +55,7 @@ def resources() -> Dict:
         "mapBounds": [0, 1, 0, 1],
         "mapRange": [0, 1],
         "mapTarget": [0.5, 0.5, 0],
+        "mapRotation": 0,
     }
 
 
@@ -111,7 +114,7 @@ class DeckGLMapAIO(html.Div):
                         hillshading_spec(),
                     ],
                     resources=resources(),
-                    bounds=resources()["mapBounds"],
+                    bounds="@@#resources.mapBounds",
                     editedData={
                         "selectedDrawingFeature": [],
                         "data": {"type": "FeatureCollection", "features": []},
@@ -156,4 +159,4 @@ class DeckGLMapAIO(html.Div):
         current_resources.update(**map_data)
         print(json.dumps(current_resources, indent=4))
 
-        return current_resources, current_resources["mapBounds"]
+        return current_resources, [456063.6875, 5926551.0, 467483.6875, 5939431.0]
