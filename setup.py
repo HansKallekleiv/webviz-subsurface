@@ -37,6 +37,7 @@ setup(
     },
     entry_points={
         "webviz_config_plugins": [
+            "PersistentIds=webviz_subsurface.plugins:PersistentIds",
             "BhpQc = webviz_subsurface.plugins:BhpQc",
             "DiskUsage = webviz_subsurface.plugins:DiskUsage",
             "GroupTree = webviz_subsurface.plugins:GroupTree",
