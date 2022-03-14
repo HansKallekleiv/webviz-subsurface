@@ -96,6 +96,7 @@ setup(
         "pillow>=6.1",
         "pyarrow>=5.0.0",
         "pydeck>=0.6.2",
+        "pyvista",
         "pyscal>=0.7.5",
         "scipy>=1.2",
         "statsmodels>=0.12.1",  # indirect dependency through https://plotly.com/python/linear-fits/
