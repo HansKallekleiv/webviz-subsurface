@@ -39,6 +39,7 @@ setup(
         "webviz_config_plugins": [
             "BhpQc = webviz_subsurface.plugins:BhpQc",
             "DiskUsage = webviz_subsurface.plugins:DiskUsage",
+            "GridViewer = webviz_subsurface.plugins:GridViewer",
             "GroupTree = webviz_subsurface.plugins:GroupTree",
             "HistoryMatch = webviz_subsurface.plugins:HistoryMatch",
             "HorizonUncertaintyViewer = webviz_subsurface.plugins:HorizonUncertaintyViewer",
@@ -82,6 +83,7 @@ setup(
         "dash>=2.0.0",
         "dash_bootstrap_components>=0.10.3",
         "dash-daq>=0.5.0",
+        "dash-vtk",
         "dataclasses>=0.8; python_version<'3.7'",
         "defusedxml>=0.6.0",
         "ecl2df>=0.15.0; sys_platform=='linux'",
