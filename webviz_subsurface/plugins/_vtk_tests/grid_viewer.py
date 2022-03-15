@@ -15,7 +15,7 @@ import webviz_core_components as wcc
 from webviz_subsurface._utils.webvizstore_functions import get_path
 
 
-class GridViewer(WebvizPluginABC):
+class VTKGridViewer(WebvizPluginABC):
     def __init__(self, vtu_file: Path):
         """
             Using dash-vtk and pyvista to visualize 3D grids.

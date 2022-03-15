@@ -23,7 +23,6 @@ pages:
 from ._assisted_history_matching_analysis import AssistedHistoryMatchingAnalysis
 from ._bhp_qc import BhpQc
 from ._disk_usage import DiskUsage
-from ._vtk_tests.grid_viewer import GridViewer
 from ._group_tree import GroupTree
 from ._history_match import HistoryMatch
 from ._horizon_uncertainty_viewer import HorizonUncertaintyViewer
@@ -59,6 +58,9 @@ from ._surface_with_grid_cross_section import SurfaceWithGridCrossSection
 from ._surface_with_seismic_cross_section import SurfaceWithSeismicCrossSection
 from ._tornado_plotter_fmu import TornadoPlotterFMU
 from ._volumetric_analysis import VolumetricAnalysis
+from ._vtk_tests.grid_viewer import VTKGridViewer
+from ._vtk_tests.surface_viewer import VTKSurfaceViewer
+from ._vtk_tests.seismic_viewer import VTKSeismicViewer
 from ._well_completions import WellCompletions
 from ._well_cross_section import WellCrossSection
 from ._well_cross_section_fmu import WellCrossSectionFMU
