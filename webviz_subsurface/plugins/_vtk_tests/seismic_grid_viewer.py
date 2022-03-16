@@ -37,8 +37,8 @@ class VTKSeismicGridViewer(WebvizPluginABC):
     def __init__(self, seismic_file: Path):
         """ """
         super().__init__()
-
-        cube = xtgeo.cube_from_file(get_path(seismic_file))
+        self.seismic_file = seismic_file
+        cube = xtgeo.cube_from_file(get_path(self.seismic_file))
         self.ugrid = cube_to_uniform_grid(cube)
         self.values = cube.values.flatten(order="F")
         self.cube = cube
@@ -249,3 +249,6 @@ class VTKSeismicGridViewer(WebvizPluginABC):
 
         #         return no_update
         #     return [""]
+
+    def add_webvizstore(self) -> List[Tuple[Callable, list]]:
+        return [(get_path, [{"path": Path(self.seismic_file)}])]

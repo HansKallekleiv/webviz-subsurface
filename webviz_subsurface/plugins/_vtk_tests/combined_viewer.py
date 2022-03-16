@@ -41,14 +41,16 @@ class VTKCombinedViewer(WebvizPluginABC):
     def __init__(self, seismic_file: Path, well_files: List[Path], surface_file: Path):
         """ """
         super().__init__()
-
-        cube = xtgeo.cube_from_file(get_path(seismic_file))
-        surface = xtgeo.surface_from_file(get_path(surface_file))
+        self.seismic_file = seismic_file
+        self.well_files = well_files
+        self.surface_file = surface_file
+        cube = xtgeo.cube_from_file(get_path(self.seismic_file))
+        surface = xtgeo.surface_from_file(get_path(self.surface_file))
         surface.values = surface.values * -5
         # cube.values = cube.values * -5
         self.wells = {}
-        for well_file in well_files:
-            well = xtgeo.well_from_file(well_file)
+        for well_file in self.well_files:
+            well = xtgeo.well_from_file(get_path(well_file))
             well.dataframe["Z_TVDSS"] = well.dataframe["Z_TVDSS"] * 5
             self.wells[well.name] = well_to_polydata_input(well)
         self.sgrid = surface_to_structured_grid(surface)
@@ -307,3 +309,7 @@ class VTKCombinedViewer(WebvizPluginABC):
 
         #         return no_update
         #     return [""]
+
+    def add_webvizstore(self) -> List[Tuple[Callable, list]]:
+        files = self.well_files + [self.surface_file, self.seismic_file]
+        return [(get_path, [{"path": Path(wellfile)} for wellfile in files])]

@@ -38,8 +38,8 @@ class VTKSeismicImageViewer(WebvizPluginABC):
     def __init__(self, seismic_file: Path):
         """ """
         super().__init__()
-
-        cube = xtgeo.cube_from_file(get_path(seismic_file))
+        self.seismic_file = seismic_file
+        cube = xtgeo.cube_from_file(get_path(self.seismic_file))
         cube.values = cube.values * 1000000
         self.values = cube.values.flatten(order="F")
         self.cube = cube
@@ -204,3 +204,6 @@ class VTKSeismicImageViewer(WebvizPluginABC):
         )
         def _update_click_info(slice_idx):
             return slice_idx
+
+    def add_webvizstore(self) -> List[Tuple[Callable, list]]:
+        return [(get_path, [{"path": Path(self.seismic_file)}])]

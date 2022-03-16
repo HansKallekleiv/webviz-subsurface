@@ -26,8 +26,8 @@ class VTKSurfaceViewer(WebvizPluginABC):
     def __init__(self, surface_file: Path):
         """ """
         super().__init__()
-
-        surface = xtgeo.surface_from_file(get_path(surface_file))
+        self.surface_file = surface_file
+        surface = xtgeo.surface_from_file(get_path(self.surface_file))
         self.sgrid = surface_to_structured_grid(surface)
         self.color_range = [
             self.sgrid["Elevation"].min(),
@@ -117,4 +117,4 @@ class VTKSurfaceViewer(WebvizPluginABC):
             return [""]
 
     def add_webvizstore(self) -> List[Tuple[Callable, list]]:
-        return [(get_path, [{"path": Path(self.vtu_file)}])]
+        return [(get_path, [{"path": Path(self.surface_file)}])]
