@@ -126,7 +126,7 @@ class VTKGridViewer(WebvizPluginABC):
                     children=[
                         dash_vtk.View(
                             id=self.uuid("vtk-view"),
-                            background=[1, 1, 1],
+                            # background=[0, 0, 0],
                             pickingModes=["click"],
                             children=[
                                 dash_vtk.GeometryRepresentation(
@@ -138,6 +138,32 @@ class VTKGridViewer(WebvizPluginABC):
                                     ],
                                     property={"show_edges": False, "opacity": 1},
                                     colorMapPreset="erdc_rainbow_bright",
+                                    # showCubeAxes=True,
+                                    # cubeAxesStyle={
+                                    # "gridColor": "black",
+                                    # "backgroundColor": "black",
+                                    # "color": "black",
+                                    # "borderColor": "black",
+                                    # "axisTextStyle": {
+                                    #     "fontColor": "black",
+                                    #     "color": "black",
+                                    #     "borderColor": "black",
+                                    #     "fontStyle": "normal",
+                                    #     "fontSize": 18,
+                                    #     "fontFamily": "serif",
+                                    #     "storeColor": "black",
+                                    #     "fillStyle": "black",
+                                    # },
+                                    # "tickLabelPixelOffset": 12.0,
+                                    # "tickTextStyle": {
+                                    #     "fontColor": "black",
+                                    #     "borderColor": "black",
+                                    #     "color": "black",
+                                    #     "fontStyle": "normal",
+                                    #     "fontSize": 14,
+                                    #     "fontFamily": "serif",
+                                    # },
+                                    # },
                                 ),
                             ],
                         ),
@@ -214,6 +240,7 @@ class VTKGridViewer(WebvizPluginABC):
             Input(self.uuid("color-scale"), "value"),
         )
         def _update_mesh(scale: str):
+            print(scale)
             return scale
 
         @callback(

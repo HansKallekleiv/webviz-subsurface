@@ -17,21 +17,9 @@ from webviz_subsurface._utils.webvizstore_functions import get_path
 
 from webviz_subsurface._utils.perf_timer import PerfTimer
 
+from ._xtgeo_to_vtk import surface_to_structured_grid
+
 LOGGER = logging.getLogger(__name__)
-
-
-def xtgeo_surface_to_vtk(surface: xtgeo.RegularSurface) -> pv.StructuredGrid:
-    timer = PerfTimer()
-    xi, yi = surface.get_xy_values(asmasked=False)
-    zi = surface.values
-    zif = np.ma.filled(zi, fill_value=np.nan)
-    col = np.linspace(0, 1, zif.ravel().shape[0])
-    sgrid = pv.StructuredGrid(xi, yi, zif)
-    sgrid.flip_z(inplace=True)
-    sgrid["Elevation"] = col  # .ravel(order='F')
-    print(f"Converted surface to vtk {timer.elapsed_s()}")
-
-    return sgrid
 
 
 class VTKSurfaceViewer(WebvizPluginABC):
@@ -40,55 +28,12 @@ class VTKSurfaceViewer(WebvizPluginABC):
         super().__init__()
 
         surface = xtgeo.surface_from_file(get_path(surface_file))
-        timer = PerfTimer()
-        self.sgrid = xtgeo_surface_to_vtk(surface)
-
-        self.sgrid.set_active_scalars("Elevation")
-        z = self.sgrid["Elevation"]
-        self.color_range = [z.min(), z.max()]
-
-        mi, ma = round(min(z), ndigits=-2), round(max(z), ndigits=-2)
-        step = 10
-        cntrs = np.arange(mi, ma + step, step)
-        contours = self.sgrid.contour(cntrs, scalars="Elevation")
-        polydata_points = self.sgrid.extract_geometry()
-
-        self.contours = to_mesh_state(contours)
-        self.surface_mesh = to_mesh_state(self.sgrid, "Elevation")
-        print("preparing mesh", timer.elapsed_s())
-        view = dash_vtk.View(
-            id=self.uuid("vtk-view"),
-            background=[1, 1, 1],
-            pickingModes=["click"],
-            children=[
-                dash_vtk.GeometryRepresentation(
-                    id=self.uuid("surface-vtk-representation"),
-                    children=[
-                        dash_vtk.Mesh(
-                            id=self.uuid("surface-mesh"),
-                            state=self.surface_mesh,
-                        )
-                    ],
-                    property={"show_edges": True, "opacity": 1},
-                    actor={"scale": [1, 1, 3]},
-                    colorMapPreset="erdc_rainbow_bright",
-                    colorDataRange=self.color_range,
-                ),
-                # dash_vtk.GeometryRepresentation(
-                #     id=self.uuid("contour-vtk-representation"),
-                #     children=[
-                #         dash_vtk.Mesh(
-                #             id=self.uuid("contour-mesh"),
-                #             state=self.contours,
-                #         )
-                #     ],
-                #     property={"show_edges": True, "opacity": 1},
-                #     actor={"scale": [1, 1, 1]},
-                #     colorMapPreset="erdc_rainbow_bright",
-                # ),
-            ],
-        )
-        print("making view", timer.elapsed_s())
+        self.sgrid = surface_to_structured_grid(surface)
+        self.color_range = [
+            self.sgrid["Elevation"].min(),
+            self.sgrid["Elevation"].max(),
+        ]
+        self.surface_mesh = to_mesh_state(self.sgrid, field_to_keep="Elevation")
         self.set_callbacks()
 
     @property
@@ -104,7 +49,7 @@ class VTKSurfaceViewer(WebvizPluginABC):
                     children=[
                         dash_vtk.View(
                             id=self.uuid("vtk-view"),
-                            background=[1, 1, 1],
+                            # background=[1, 1, 1],
                             pickingModes=["click"],
                             children=[
                                 dash_vtk.GeometryRepresentation(
@@ -116,9 +61,10 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                         )
                                     ],
                                     property={"show_edges": True, "opacity": 1},
-                                    actor={"scale": [1, 1, 3]},
+                                    actor={"scale": [1, 1, 1]},
                                     colorMapPreset="erdc_rainbow_bright",
                                     colorDataRange=self.color_range,
+                                    showCubeAxes=True,
                                 ),
                                 # dash_vtk.GeometryRepresentation(
                                 #     id=self.uuid("contour-vtk-representation"),
