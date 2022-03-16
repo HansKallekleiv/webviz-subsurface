@@ -99,6 +99,7 @@ setup(
         "pandas>=1.1.5",
         "pillow>=6.1",
         "pyarrow>=5.0.0",
+        "PVGeo",
         "pydeck>=0.6.2",
         "pyvista",
         "pyscal>=0.7.5",
