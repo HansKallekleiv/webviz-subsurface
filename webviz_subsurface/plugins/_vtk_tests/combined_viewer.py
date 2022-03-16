@@ -194,7 +194,7 @@ class VTKCombinedViewer(WebvizPluginABC):
                             id=self.uuid("z-scale"),
                             min=1,
                             max=10,
-                            value=1,
+                            value=5,
                             step=1,
                             # updatemode="drag",
                         ),
@@ -263,6 +263,7 @@ class VTKCombinedViewer(WebvizPluginABC):
                 ugrid = self.ugrid.extract_subset(
                     [self.imin, self.imax, self.jmin, self.jmax, slice_idx, slice_idx]
                 )
+            print("zscale", z_scale)
             ugrid = ugrid.scale([1, 1, z_scale], inplace=False)
             return to_mesh_state(ugrid, field_to_keep="values")
 

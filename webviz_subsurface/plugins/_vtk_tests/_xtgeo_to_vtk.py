@@ -69,7 +69,7 @@ def well_to_polydata_input(well: xtgeo.Well) -> pv.PolyData:
     xyz_arr = well.dataframe[["X_UTME", "Y_UTMN", "Z_TVDSS"]].values[3:]
     line = polyline_from_points(xyz_arr)
     line["scalars"] = np.arange(line.n_points)
-    tube = line.tube(radius=5)
+    tube = line.tube(radius=20)
 
     return tube
     # polydata = points_to_poly_data(xyz_arr)
