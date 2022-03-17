@@ -1,11 +1,7 @@
 from typing import List
 import numpy as np
 import xtgeo
-from vtk.util.numpy_support import vtk_to_numpy
 import pyvista as pv
-
-from PVGeo import points_to_poly_data
-from PVGeo.filters import AddCellConnToPoints, RotatePoints
 
 
 def lines_from_points(points):
@@ -66,12 +62,14 @@ def cube_to_uniform_grid(seismic: xtgeo.Cube) -> pv.StructuredGrid:
 
 def well_to_polydata_input(well: xtgeo.Well) -> pv.PolyData:
     well.dataframe["Z_TVDSS"] = well.dataframe["Z_TVDSS"] * -1
-    xyz_arr = well.dataframe[["X_UTME", "Y_UTMN", "Z_TVDSS"]].values[3:]
-    line = polyline_from_points(xyz_arr)
-    line["scalars"] = np.arange(line.n_points)
-    tube = line.tube(radius=20)
+    well.dataframe = well.dataframe.fillna(0)
+    coordinates = ["X_UTME", "Y_UTMN", "Z_TVDSS"]
+    xyz_arr = well.dataframe[coordinates].values
+    polydata = polyline_from_points(xyz_arr)
+    for log in well.dataframe.drop(columns=coordinates):
+        polydata[log] = well.dataframe[log]
 
-    return tube
+    return polydata
     # polydata = points_to_poly_data(xyz_arr)
     # polys = vtk_to_numpy(polydata.GetPolys().GetData())
     # points = polydata.points.ravel()

@@ -28,6 +28,7 @@ class VTKSurfaceViewer(WebvizPluginABC):
         super().__init__()
         self.surface_file = surface_file
         surface = xtgeo.surface_from_file(get_path(self.surface_file))
+        surface.values *= -1
         self.sgrid = surface_to_structured_grid(surface)
         self.color_range = [
             self.sgrid["Elevation"].min(),

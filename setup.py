@@ -44,6 +44,7 @@ setup(
             "VTKSeismicImageViewer = webviz_subsurface.plugins:VTKSeismicImageViewer",
             "VTKSurfaceViewer = webviz_subsurface.plugins:VTKSurfaceViewer",
             "VTKCombinedViewer = webviz_subsurface.plugins:VTKCombinedViewer",
+            "VTKWellViewer = webviz_subsurface.plugins:VTKWellViewer",
             "GroupTree = webviz_subsurface.plugins:GroupTree",
             "HistoryMatch = webviz_subsurface.plugins:HistoryMatch",
             "HorizonUncertaintyViewer = webviz_subsurface.plugins:HorizonUncertaintyViewer",

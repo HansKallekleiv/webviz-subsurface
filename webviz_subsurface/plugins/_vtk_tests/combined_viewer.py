@@ -52,6 +52,7 @@ class VTKCombinedViewer(WebvizPluginABC):
         for well_file in self.well_files:
             well = xtgeo.well_from_file(get_path(well_file))
             well.dataframe["Z_TVDSS"] = well.dataframe["Z_TVDSS"] * 5
+            well.downsample(20)
             self.wells[well.name] = well_to_polydata_input(well)
         self.sgrid = surface_to_structured_grid(surface)
         self.color_range = [
@@ -116,7 +117,11 @@ class VTKCombinedViewer(WebvizPluginABC):
                     "pointSize": 10,
                 },
                 children=[
-                    dash_vtk.Mesh(state=to_mesh_state(well)),
+                    dash_vtk.Mesh(
+                        state=to_mesh_state(
+                            well.tube(radius=20, scalars="PHIT"), field_to_keep="PHIT"
+                        )
+                    ),
                 ],
             )
             for well in self.wells.values()
