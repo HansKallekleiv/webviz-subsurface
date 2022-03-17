@@ -5,7 +5,7 @@ from time import time
 from typing import List, Tuple, Callable
 
 import numpy as np
-from dash import html, Input, Output, State, callback, no_update, callback_context
+from dash import html, Input, Output, State, callback, no_update, callback_context, dcc
 import pyvista as pv
 import dash_vtk
 from dash_vtk.utils import presets, to_mesh_state
@@ -26,6 +26,7 @@ class VTKSurfaceViewer(WebvizPluginABC):
     def __init__(self, surface_file: Path):
         """ """
         super().__init__()
+
         self.surface_file = surface_file
         surface = xtgeo.surface_from_file(get_path(self.surface_file))
         surface.values *= -1
@@ -35,6 +36,8 @@ class VTKSurfaceViewer(WebvizPluginABC):
             self.sgrid["Elevation"].max(),
         ]
         self.surface_mesh = to_mesh_state(self.sgrid, field_to_keep="Elevation")
+        self.contours = self.sgrid.contour(list(np.arange(0, -3000, -10)))
+        self.contours_mesh = to_mesh_state(self.contours)
         self.set_callbacks()
 
     @property
@@ -43,7 +46,17 @@ class VTKSurfaceViewer(WebvizPluginABC):
             children=[
                 wcc.Frame(
                     style={"flex": 1, "height": "90vh"},
-                    children=[],
+                    children=[
+                        html.Button(
+                            style={"marginBottom": "20px", "display": "block"},
+                            id=self.uuid("clear-coordinates"),
+                            children="Clear coordinates",
+                        ),
+                        wcc.Header("Stored coordinates:"),
+                        html.Pre(
+                            id=self.uuid("tooltip"),
+                        ),
+                    ],
                 ),
                 wcc.Frame(
                     style={"flex": 5},
@@ -67,55 +80,66 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                     colorDataRange=self.color_range,
                                     showCubeAxes=True,
                                 ),
+                                dash_vtk.GeometryRepresentation(
+                                    id=self.uuid("contours-vtk-representation"),
+                                    children=[
+                                        dash_vtk.Mesh(
+                                            id=self.uuid("contours-mesh"),
+                                            state=self.contours_mesh,
+                                        )
+                                    ],
+                                    property={
+                                        "show_edges": True,
+                                        "color": "black",
+                                        "width": 5,
+                                        "opacity": 1,
+                                    },
+                                    actor={"scale": [1, 1, 1]},
+                                ),
                                 # dash_vtk.GeometryRepresentation(
-                                #     id=self.uuid("contour-vtk-representation"),
+                                #     id=self.uuid("edited-polyline-rep"),
+                                #     actor={"visibility": False},
                                 #     children=[
-                                #         dash_vtk.Mesh(
-                                #             id=self.uuid("contour-mesh"),
-                                #             state=self.contours,
+                                #         dash_vtk.Algorithm(
+                                #             id=self.uuid("edited-polyline-coords"),
+                                #             vtkClass="vtkLineSource",
+                                #             state={"radius": 100},
                                 #         )
                                 #     ],
-                                #     property={"show_edges": True, "opacity": 1},
-                                #     actor={"scale": [1, 1, 1]},
-                                #     colorMapPreset="erdc_rainbow_bright",
                                 # ),
                             ],
                         ),
-                        html.Pre(
-                            id=self.uuid("tooltip"),
-                            style={
-                                "position": "absolute",
-                                "bottom": "25px",
-                                "left": "25px",
-                                "zIndex": 1,
-                                "color": "black",
-                            },
-                        ),
                     ],
                 ),
+                dcc.Store(self.uuid("stored-coordinates"), data=[]),
             ]
         )
 
     def set_callbacks(self):
         @callback(
-            [
-                Output(self.uuid("tooltip"), "children"),
-            ],
-            [
-                Input(self.uuid("vtk-view"), "clickInfo"),
-                Input(self.uuid("vtk-view"), "hoverInfo"),
-            ],
+            # Output(self.uuid("tooltip"), "children"),
+            Output(self.uuid("stored-coordinates"), "data"),
+            Input(self.uuid("vtk-view"), "clickInfo"),
+            Input(self.uuid("clear-coordinates"), "n_clicks"),
+            State(self.uuid("stored-coordinates"), "data"),
         )
-        def _update_click_info(clickData, hoverData):
-            info = hoverData if hoverData else clickData
-            if info:
-                if "representationId" in info and info["representationId"] == self.uuid(
-                    "surface-vtk-representation"
-                ):
-                    return ([json.dumps(info["worldPosition"], indent=2)],)
+        def _update_click_info(clickdata, _n_clicks, stored_cordinates):
+            if "n_clicks" in callback_context.triggered[0]["prop_id"]:
+                return []
+            if clickdata:
+                if "representationId" in clickdata and clickdata[
+                    "representationId"
+                ] == self.uuid("surface-vtk-representation"):
+                    stored_cordinates.append(clickdata["worldPosition"])
+                    return stored_cordinates
+            return no_update
 
-                return no_update
-            return [""]
+        @callback(
+            Output(self.uuid("tooltip"), "children"),
+            Input(self.uuid("stored-coordinates"), "data"),
+        )
+        def _show_coords(coords):
+            return json.dumps(coords, indent=2)
 
     def add_webvizstore(self) -> List[Tuple[Callable, list]]:
         return [(get_path, [{"path": Path(self.surface_file)}])]

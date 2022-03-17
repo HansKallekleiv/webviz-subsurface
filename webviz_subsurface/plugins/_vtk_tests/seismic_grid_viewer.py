@@ -60,14 +60,18 @@ class VTKSeismicGridViewer(WebvizPluginABC):
         self.set_callbacks()
 
     def make_value_distribution_plot(self):
-        counts, bins = np.histogram(self.values, bins=500)
 
+        counts, bins = np.histogram(
+            np.clip(self.values, -0.0000001, 0.0000001), bins=20
+        )
+        print(bins)
         bins = 0.5 * (bins[:-1] + bins[1:])
+        print("---", bins)
         histo = px.bar(
             x=bins,
             y=counts,
             color_discrete_sequence=["indianred"],
-            title="Value distribution - Zoom to adjust",
+            title="Color range - Zoom to adjust",
         )
         histo.update_traces(hoverinfo="skip")
         histo["layout"].update(

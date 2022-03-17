@@ -89,7 +89,7 @@ class VTKCombinedViewer(WebvizPluginABC):
             x=bins,
             y=counts,
             color_discrete_sequence=["indianred"],
-            title="Value distribution - Zoom to adjust",
+            title="Seismic color range - Zoom to adjust",
         )
         histo.update_traces(hoverinfo="skip")
         histo["layout"].update(
