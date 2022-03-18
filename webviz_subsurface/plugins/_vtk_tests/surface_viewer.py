@@ -75,7 +75,7 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                             state=self.surface_mesh,
                                         )
                                     ],
-                                    showScalarBar=True,
+                                    # showScalarBar=True,
                                     property={
                                         "show_edges": True,
                                         "opacity": 1,
@@ -150,7 +150,7 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                             state=self.surface_mesh,
                                         )
                                     ],
-                                    showScalarBar=True,
+                                    # showScalarBar=True,
                                     property={
                                         "show_edges": True,
                                         "opacity": 1,
