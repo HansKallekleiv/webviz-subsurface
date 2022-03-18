@@ -60,6 +60,7 @@ from ._tornado_plotter_fmu import TornadoPlotterFMU
 from ._volumetric_analysis import VolumetricAnalysis
 from ._vtk_tests.combined_viewer import VTKCombinedViewer
 from ._vtk_tests.grid_viewer import VTKGridViewer
+from ._vtk_tests.grid_intersect_viewer import VTKGridIntersectViewer
 from ._vtk_tests.surface_viewer import VTKSurfaceViewer
 from ._vtk_tests.seismic_grid_viewer import VTKSeismicGridViewer
 from ._vtk_tests.seismic_image_viewer import VTKSeismicImageViewer

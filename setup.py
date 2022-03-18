@@ -40,6 +40,7 @@ setup(
             "BhpQc = webviz_subsurface.plugins:BhpQc",
             "DiskUsage = webviz_subsurface.plugins:DiskUsage",
             "VTKGridViewer = webviz_subsurface.plugins:VTKGridViewer",
+            "VTKGridIntersectViewer = webviz_subsurface.plugins:VTKGridIntersectViewer",
             "VTKSeismicGridViewer = webviz_subsurface.plugins:VTKSeismicGridViewer",
             "VTKSeismicImageViewer = webviz_subsurface.plugins:VTKSeismicImageViewer",
             "VTKSurfaceViewer = webviz_subsurface.plugins:VTKSurfaceViewer",

@@ -62,9 +62,10 @@ class VTKSurfaceViewer(WebvizPluginABC):
                     style={"flex": 5},
                     children=[
                         dash_vtk.View(
-                            id=self.uuid("vtk-view"),
+                            id=self.uuid("vtk-view1"),
                             # background=[1, 1, 1],
                             pickingModes=["click"],
+                            # cameraParallelProjection=True,
                             children=[
                                 dash_vtk.GeometryRepresentation(
                                     id=self.uuid("surface-vtk-representation"),
@@ -74,8 +75,90 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                             state=self.surface_mesh,
                                         )
                                     ],
-                                    property={"show_edges": True, "opacity": 1},
-                                    actor={"scale": [1, 1, 1]},
+                                    showScalarBar=True,
+                                    property={
+                                        "show_edges": True,
+                                        "opacity": 1,
+                                        "lighting": False,
+                                    },
+                                    actor={
+                                        "scale": [1, 1, 5],
+                                    },
+                                    colorMapPreset="erdc_rainbow_bright",
+                                    colorDataRange=self.color_range,
+                                    # showCubeAxes=True,
+                                ),
+                                dash_vtk.GeometryRepresentation(
+                                    id=self.uuid("contours-vtk-representation"),
+                                    children=[
+                                        dash_vtk.Mesh(
+                                            id=self.uuid("contours-mesh"),
+                                            state=self.contours_mesh,
+                                        )
+                                    ],
+                                    property={
+                                        "show_edges": True,
+                                        "color": "black",
+                                        "width": 5,
+                                        "opacity": 1,
+                                    },
+                                    actor={"scale": [1, 1, 5]},
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+                wcc.Frame(
+                    style={"flex": 5},
+                    children=[
+                        dash_vtk.View(
+                            id=self.uuid("vtk-view2"),
+                            # background=[1, 1, 1],
+                            pickingModes=["click"],
+                            interactorSettings=[
+                                {
+                                    "button": 1,
+                                    "action": "Pan",
+                                },
+                                {
+                                    "button": 2,
+                                    "action": "Pan",
+                                },
+                                {
+                                    "button": 3,
+                                    "action": "Zoom",
+                                    "scrollEnabled": True,
+                                },
+                                {
+                                    "button": 1,
+                                    "action": "Pan",
+                                    "shift": True,
+                                },
+                                {
+                                    "button": 1,
+                                    "action": "Zoom",
+                                    "alt": True,
+                                },
+                            ],
+                            # cameraParallelProjection=True,
+                            children=[
+                                dash_vtk.GeometryRepresentation(
+                                    id=self.uuid("surface-vtk-representation"),
+                                    children=[
+                                        dash_vtk.Mesh(
+                                            id=self.uuid("surface-mesh"),
+                                            state=self.surface_mesh,
+                                        )
+                                    ],
+                                    showScalarBar=True,
+                                    property={
+                                        "show_edges": True,
+                                        "opacity": 1,
+                                        "lighting": False,
+                                    },
+                                    actor={
+                                        "scale": [1, 1, 1],
+                                    },
                                     colorMapPreset="erdc_rainbow_bright",
                                     colorDataRange=self.color_range,
                                     showCubeAxes=True,
@@ -96,17 +179,6 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                     },
                                     actor={"scale": [1, 1, 1]},
                                 ),
-                                # dash_vtk.GeometryRepresentation(
-                                #     id=self.uuid("edited-polyline-rep"),
-                                #     actor={"visibility": False},
-                                #     children=[
-                                #         dash_vtk.Algorithm(
-                                #             id=self.uuid("edited-polyline-coords"),
-                                #             vtkClass="vtkLineSource",
-                                #             state={"radius": 100},
-                                #         )
-                                #     ],
-                                # ),
                             ],
                         ),
                     ],
@@ -119,7 +191,7 @@ class VTKSurfaceViewer(WebvizPluginABC):
         @callback(
             # Output(self.uuid("tooltip"), "children"),
             Output(self.uuid("stored-coordinates"), "data"),
-            Input(self.uuid("vtk-view"), "clickInfo"),
+            Input(self.uuid("vtk-view1"), "clickInfo"),
             Input(self.uuid("clear-coordinates"), "n_clicks"),
             State(self.uuid("stored-coordinates"), "data"),
         )

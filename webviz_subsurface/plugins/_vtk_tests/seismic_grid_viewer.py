@@ -64,9 +64,9 @@ class VTKSeismicGridViewer(WebvizPluginABC):
         counts, bins = np.histogram(
             np.clip(self.values, -0.0000001, 0.0000001), bins=20
         )
-        print(bins)
+
         bins = 0.5 * (bins[:-1] + bins[1:])
-        print("---", bins)
+
         histo = px.bar(
             x=bins,
             y=counts,
@@ -217,7 +217,7 @@ class VTKSeismicGridViewer(WebvizPluginABC):
             Input(self.uuid("histogram"), "relayoutData"),
         )
         def _update_color_range(data):
-            print(data)
+
             if data is not None:
                 if data.get("xaxis.range[0]") and data.get("xaxis.range[1]"):
                     return [[data["xaxis.range[0]"], data["xaxis.range[1]"]]] * 3
@@ -243,7 +243,7 @@ class VTKSeismicGridViewer(WebvizPluginABC):
         # )
         # def _update_click_info(clickData, hoverData):
         #     info = hoverData if hoverData else clickData
-        #     print(info)
+
         #     return info
         #     if info:
         #         if "representationId" in info and info["representationId"] == self.uuid(
