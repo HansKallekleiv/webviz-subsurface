@@ -51,10 +51,12 @@ class VTKWellViewer(WebvizPluginABC):
         for well_file in self.well_files:
 
             well = xtgeo.well_from_file(get_path(well_file))
-            # Reverse z
-            well.dataframe["Z_TVDSS"] = well.dataframe["Z_TVDSS"] * 5
             # Coarsen a bit
             well.downsample(10)
+
+            dataframe = well.dataframe.copy()
+            # Reverse z
+            dataframe["Z_TVDSS"] = dataframe["Z_TVDSS"] * -1
 
             # Add log names
             log_names = list(
@@ -76,7 +78,7 @@ class VTKWellViewer(WebvizPluginABC):
                     else:
                         self.log_color_ranges[log_name] = minmax
 
-            self.wells[well.name] = well_to_polydata_input(well)
+            self.wells[well.name] = well_to_polydata_input(dataframe)
 
         for logname, log_vals in self.log_color_ranges.items():
             self.log_color_ranges[logname] = [min(log_vals), max(log_vals)]

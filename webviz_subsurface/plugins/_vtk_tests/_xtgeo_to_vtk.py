@@ -3,25 +3,7 @@ import numpy as np
 import xtgeo
 import pyvista as pv
 
-
-def lines_from_points(points):
-    """Given an array of points, make a line set"""
-    poly = pv.PolyData()
-    poly.points = points
-    cells = np.full((len(points) - 1, 3), 2, dtype=np.int_)
-    cells[:, 1] = np.arange(0, len(points) - 1, dtype=np.int_)
-    cells[:, 2] = np.arange(1, len(points), dtype=np.int_)
-    poly.lines = cells
-    return poly
-
-
-def polyline_from_points(points):
-    poly = pv.PolyData()
-    poly.points = points
-    the_cell = np.arange(0, len(points), dtype=np.int_)
-    the_cell = np.insert(the_cell, 0, len(points))
-    poly.lines = the_cell
-    return poly
+from ._utils import polyline_from_points, rdp_rec
 
 
 def cube_to_uniform_grid(seismic: xtgeo.Cube) -> pv.StructuredGrid:
@@ -60,22 +42,27 @@ def cube_to_uniform_grid(seismic: xtgeo.Cube) -> pv.StructuredGrid:
     return grid
 
 
-def well_to_polydata_input(well: xtgeo.Well) -> pv.PolyData:
-    well.dataframe["Z_TVDSS"] = well.dataframe["Z_TVDSS"] * -1
-    well.dataframe = well.dataframe.fillna(0)
+def well_to_polydata_input(dframe) -> pv.PolyData:
+    # dframe["Z_TVDSS"] = dframe["Z_TVDSS"] * -1
+    dframe = dframe.fillna(0)
     coordinates = ["X_UTME", "Y_UTMN", "Z_TVDSS"]
-    xyz_arr = well.dataframe[coordinates].values
+    xyz_arr = dframe[coordinates].values
     polydata = polyline_from_points(xyz_arr)
-    for log in well.dataframe.drop(columns=coordinates):
-        polydata[log] = well.dataframe[log]
+    for log in dframe.drop(columns=coordinates):
+        polydata[log] = dframe[log]
 
     return polydata
-    # polydata = points_to_poly_data(xyz_arr)
-    # polys = vtk_to_numpy(polydata.GetPolys().GetData())
-    # points = polydata.points.ravel()
-    # lines = AddCellConnToPoints().apply(polydata)
-    # print(lines)
-    # return {"points": points, "polys": polys, "lines": lines}
+
+
+def well_to_polydata_fence(dframe) -> pv.PolyData:
+
+    # dframe["Z_TVDSS"] = dframe["Z_TVDSS"] * -1
+    dframe = dframe.fillna(0)
+    coordinates = ["X_UTME", "Y_UTMN", "Z_TVDSS"]
+    xyz_arr = dframe[coordinates].values
+    xyz_arr = rdp_rec(xyz_arr, 1.0)
+    polydata = polyline_from_points(xyz_arr)
+    return polydata
 
 
 def surface_to_structured_grid(surface: xtgeo.RegularSurface) -> pv.StructuredGrid:

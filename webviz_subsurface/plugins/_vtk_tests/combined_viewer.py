@@ -53,7 +53,9 @@ class VTKCombinedViewer(WebvizPluginABC):
             well = xtgeo.well_from_file(get_path(well_file))
             well.dataframe["Z_TVDSS"] = well.dataframe["Z_TVDSS"] * 5
             well.downsample(20)
-            self.wells[well.name] = well_to_polydata_input(well)
+            dataframe = well.dataframe.copy()
+            dataframe["Z_TVDSS"] = dataframe["Z_TVDSS"] * -1
+            self.wells[well.name] = well_to_polydata_input(dataframe)
         self.sgrid = surface_to_structured_grid(surface)
         self.color_range = [
             self.sgrid["Elevation"].min(),

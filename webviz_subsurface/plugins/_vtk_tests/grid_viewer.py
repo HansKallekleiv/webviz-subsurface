@@ -136,7 +136,11 @@ class VTKGridViewer(WebvizPluginABC):
                                             id=self.uuid("mesh"), state=self.mesh
                                         )
                                     ],
-                                    property={"show_edges": False, "opacity": 1},
+                                    property={
+                                        "show_edges": True,
+                                        "edgeVisibility": True,
+                                        "opacity": 1,
+                                    },
                                     colorMapPreset="erdc_rainbow_bright",
                                     # showCubeAxes=True,
                                     # cubeAxesStyle={

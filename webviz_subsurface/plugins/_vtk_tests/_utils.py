@@ -1,73 +1,73 @@
 import numpy as np
-import pandas as pd
 import pyvista as pv
 
-# Functions copied  from https://github.com/OpenGeoVis/PVGeo
-def points_to_poly_data(points, copy_z=False):
+
+def lines_from_points(points):
+    """Given an array of points, make a line set"""
+    poly = pv.PolyData()
+    poly.points = points
+    cells = np.full((len(points) - 1, 3), 2, dtype=np.int_)
+    cells[:, 1] = np.arange(0, len(points) - 1, dtype=np.int_)
+    cells[:, 2] = np.arange(1, len(points), dtype=np.int_)
+    poly.lines = cells
+    return poly
+
+
+def polyline_from_points(points):
+    """Make polydata from pointset"""
+    poly = pv.PolyData()
+    poly.points = points
+    the_cell = np.arange(0, len(points), dtype=np.int_)
+    the_cell = np.insert(the_cell, 0, len(points))
+    poly.lines = the_cell
+    return poly
+
+
+def pldist(point, start, end):
     """
-    Create ``vtkPolyData`` from a numpy array of XYZ points. If the points
-    have more than 3 dimensions, then all dimensions after the third will be
-    added as attributes. Assume the first three dimensions are the XYZ
-    coordinates.
-    Args:
-        points (np.ndarray or pandas.DataFrame): The points and pointdata
-        copy_z (bool): A flag on whether to append the z values as a PointData
-            array
-    Return:
-        vtkPolyData : points with point-vertex cells
+    Calculates the distance from ``point`` to the line given
+    by the points ``start`` and ``end``.
+    :param point: a point
+    :type point: numpy array
+    :param start: a point of the line
+    :type start: numpy array
+    :param end: another point of the line
+    :type end: numpy array
     """
-    # This prevents an error that occurs when only one point is passed
-    if points.ndim < 2:
-        points = points.reshape((1, -1))
-    keys = ["Field %d" % i for i in range(points.shape[1] - 3)]
-    # Check if input is anything other than a NumPy array and cast it
-    # e.g. you could send a Pandas dataframe
-    if not isinstance(points, np.ndarray):
-        if isinstance(points, pd.DataFrame):
-            # If a pandas data frame, lets grab the keys
-            keys = points.keys()[3::]
-        points = np.array(points)
-    # If points are not 3D
-    if points.shape[1] < 2:
-        raise RuntimeError("Points must be 3D. Try adding a third dimension of zeros.")
+    if np.all(np.equal(start, end)):
+        return np.linalg.norm(point - start)
 
-    atts = points[:, 3::]
-    points = points[:, 0:3].astype(float)
-
-    # Create polydata
-    pdata = pv.PolyData(points)
-
-    # Add attributes if given
-    scalSet = False
-    for i, key in enumerate(keys):
-        data = convert_array(atts[:, i], name=key)
-        pdata.GetPointData().AddArray(data)
-        if not scalSet:
-            pdata.GetPointData().SetActiveScalars(key)
-            scalSet = True
-    if copy_z:
-        z = convert_array(points[:, 2], name="Elevation")
-        pdata.GetPointData().AddArray(z)
-    return pv.wrap(pdata)
+    return np.divide(
+        np.abs(np.linalg.norm(np.cross(end - start, start - point))),
+        np.linalg.norm(end - start),
+    )
 
 
-def convert_array(arr, name="Data", deep=0, array_type=None, pdf=False):
-    """A helper to convert a NumPy array to a vtkDataArray or vice versa
-    Args:
-        arr (ndarray or vtkDataArry) : A numpy array or vtkDataArry to convert
-        name (str): the name of the data array for VTK
-        deep (bool, int): if input is numpy array then deep copy values
-        pdf (bool): if input is vtkDataArry, make a pandas DataFrame of the array
-    Return:
-        vtkDataArray, ndarray, or DataFrame:
-            the converted array (if input is a NumPy ndaray then returns
-            ``vtkDataArray`` or is input is ``vtkDataArray`` then returns NumPy
-            ``ndarray``). If pdf==True and the input is ``vtkDataArry``,
-            return a pandas DataFrame.
+def rdp_rec(M, epsilon, dist=pldist):
     """
-    num_data = pv.convert_array(arr, name=name, deep=deep, array_type=array_type)
-    if not isinstance(num_data, np.ndarray):
-        return num_data
-    if not pdf:
-        return num_data
-    return pd.DataFrame(data=num_data, columns=[arr.GetName()])
+    Simplifies a given array of points.
+    Recursive version.
+    :param M: an array
+    :type M: numpy array
+    :param epsilon: epsilon in the rdp algorithm
+    :type epsilon: float
+    :param dist: distance function
+    :type dist: function with signature ``f(point, start, end)`` -- see :func:`rdp.pldist`
+    """
+    dmax = 0.0
+    index = -1
+
+    for i in range(1, M.shape[0]):
+        d = dist(M[i], M[0], M[-1])
+
+        if d > dmax:
+            index = i
+            dmax = d
+
+    if dmax > epsilon:
+        r1 = rdp_rec(M[: index + 1], epsilon, dist)
+        r2 = rdp_rec(M[index:], epsilon, dist)
+
+        return np.vstack((r1[:-1], r2))
+    else:
+        return np.vstack((M[0], M[-1]))

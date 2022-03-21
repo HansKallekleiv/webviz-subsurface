@@ -65,6 +65,7 @@ from ._vtk_tests.surface_viewer import VTKSurfaceViewer
 from ._vtk_tests.seismic_grid_viewer import VTKSeismicGridViewer
 from ._vtk_tests.seismic_image_viewer import VTKSeismicImageViewer
 from ._vtk_tests.well_viewer import VTKWellViewer
+from ._vtk_tests._grid_intersect_wells import VTKGridIntersectWells
 from ._well_completions import WellCompletions
 from ._well_cross_section import WellCrossSection
 from ._well_cross_section_fmu import WellCrossSectionFMU
