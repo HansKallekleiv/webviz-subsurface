@@ -37,15 +37,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 class VTKGridIntersectWells(WebvizPluginABC):
-    def __init__(self, well_files: List[Path], grid_file: Path):
+    def __init__(self, well_files: List[Path], grid_files: List[Path]):
         """ """
         super().__init__()
 
         self.well_files = well_files
         wells = [xtgeo.well_from_file(get_path(well)) for well in self.well_files]
         self.wells = {well.name: well for well in wells}
-        self.grid_file = grid_file
-        self.ugrid = pv.read(get_path(self.grid_file))
+        self.grid_files = grid_files
+        self.ugrid = pv.read(get_path(self.grid_files[0]))
         # self.ugrid = self.ugrid.scale([1, 1, -1])
         self.ugrid["PHIT"] = np.random.uniform(-100, 100, self.ugrid.points.shape)
 
@@ -100,21 +100,6 @@ class VTKGridIntersectWells(WebvizPluginABC):
         self.log_names = list(self.log_names)
         self.set_callbacks()
 
-    @property
-    def grid_layer_representation(self):
-        return dash_vtk.GeometryRepresentation(
-            id=self.uuid("grid-layer-representation"),
-            children=[
-                dash_vtk.Mesh(
-                    id=self.uuid("grid-layer-mesh"),
-                    state=self.last_layer_mesh,
-                )
-            ],
-            property={"edgeVisibility ": True, "opacity": 1},
-            colorMapPreset="erdc_rainbow_bright",
-            showCubeAxes=True,
-        )
-
     def intersect_view(self, well_name):
 
         pll = pv.Plotter()
@@ -168,6 +153,17 @@ class VTKGridIntersectWells(WebvizPluginABC):
                     style={"flex": 1, "height": "90vh"},
                     children=[
                         wcc.SelectWithLabel(
+                            id=self.uuid("real-select"),
+                            label="Realization",
+                            options=[
+                                {"label": idx, "value": str(fn)}
+                                for idx, fn in enumerate(self.grid_files)
+                            ],
+                            value=str(self.grid_files[0]),
+                            size=6,
+                            multi=False,
+                        ),
+                        wcc.SelectWithLabel(
                             id=self.uuid("well-select"),
                             label="Well",
                             options=[
@@ -196,7 +192,21 @@ class VTKGridIntersectWells(WebvizPluginABC):
                                 pickingModes=["click"],
                                 children=self.well_tube_representations
                                 + [
-                                    self.grid_layer_representation,
+                                    dash_vtk.GeometryRepresentation(
+                                        id=self.uuid("grid-layer-representation"),
+                                        children=[
+                                            dash_vtk.Mesh(
+                                                id=self.uuid("grid-layer-mesh"),
+                                                state={},
+                                            )
+                                        ],
+                                        property={
+                                            "edgeVisibility ": True,
+                                            "opacity": 1,
+                                        },
+                                        colorMapPreset="erdc_rainbow_bright",
+                                        showCubeAxes=True,
+                                    ),
                                     dash_vtk.GeometryRepresentation(
                                         id=self.uuid("well-plane-representation"),
                                         children=[
@@ -303,25 +313,43 @@ class VTKGridIntersectWells(WebvizPluginABC):
             Output(self.uuid("grid-intersect-mesh"), "state"),
             Output(self.uuid("well-intersect-mesh"), "state"),
             Output(self.uuid("well-plane-mesh"), "state"),
+            Output(self.uuid("grid-layer-mesh"), "state"),
             Output(self.uuid("vtk-view-intersect"), "cameraPosition"),
+            Input(self.uuid("real-select"), "value"),
             Input(self.uuid("well-select"), "value"),
         )
-        def _update_intersection(well_name):
+        def _update_intersection(fn, well_name):
+            fn = fn[0] if isinstance(fn, list) else fn
             well_name = well_name[0] if isinstance(well_name, list) else well_name
             well = self.wells[well_name].copy()
 
             well.dataframe = well.dataframe.loc[well.dataframe["Z_TVDSS"] > 1500]
             well.dataframe = well.dataframe.loc[well.dataframe["Z_TVDSS"] < 1700]
-            well.downsample(10)
+            while well.dataframe.size >= 1000:
+                well.downsample(10)
+            print(well.dataframe.size)
             well_line = Well(well)
             tube = well_line.tube(radius=2)
             tube.scale([1, 1, 5], inplace=True)
 
-            intersect = well_line.intersect_grid(self.ugrid)
+            ugrid = pv.read(get_path(fn))
+            print("Loading grid")
+            # self.ugrid = self.ugrid.scale([1, 1, -1])
+            ugrid["PHIT"] = np.random.uniform(-100, 100, ugrid.points.shape)
+
+            last_layer_indices = np.argwhere(
+                ugrid["BLOCK_K"] == ugrid["BLOCK_K"].min()
+            ).ravel()
+            last_layer_grid = ugrid.extract_cells(last_layer_indices)
+            last_layer_mesh = to_mesh_state(
+                last_layer_grid.scale([1, 1, 5]), field_to_keep="PHIT"
+            )
+            intersect = well_line.intersect_grid(ugrid)
             intersect_scaled = intersect.scale([1, 1, 5], inplace=False)
             pll = pv.Plotter()
             pll.add_mesh(intersect_scaled)
             pll.add_mesh(tube)
+            print(pll.camera.model_transform_matrix)
             mesh = to_mesh_state(intersect.scale([1, 1, 5]), field_to_keep="PHIT")
             mesh_scaled = to_mesh_state(intersect_scaled, field_to_keep="PHIT")
             tube_mesh = to_mesh_state(tube, field_to_keep="PHIT")
@@ -330,6 +358,7 @@ class VTKGridIntersectWells(WebvizPluginABC):
                 mesh_scaled,
                 tube_mesh,
                 mesh,
+                last_layer_mesh,
                 pll.camera.position,  # , pll.camera.focal_point, (0, 0, -1)],
             )
 
