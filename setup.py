@@ -108,7 +108,7 @@ setup(
         "webviz-core-components>=0.5.6",
         "webviz-subsurface-components>=0.4.12",
         "webviz_vtk@git+https://github.com/hanskallekleiv/webviz-vtk",
-        "xtgeo@git+https://github.com/sigurdp/xtgeo@65258009e98183723a14d2d35a9e74edc6b5f87c",
+        "xtgeo",
         # "xtgeo>=2.18.0a1",
     ],
     extras_require={"tests": TESTS_REQUIRE},
