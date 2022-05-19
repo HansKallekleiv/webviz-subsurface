@@ -94,7 +94,6 @@ def plugin_callbacks(
         proptype: str,
         current_polys: str,
     ) -> Tuple[Any, Any, Any, List, Any]:
-
         if PROPERTYTYPE(proptype) == PROPERTYTYPE.INIT:
             property_spec = PropertySpec(prop_name=prop[0], prop_date=0)
         else:

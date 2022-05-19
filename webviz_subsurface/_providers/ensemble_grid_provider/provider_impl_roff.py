@@ -194,7 +194,6 @@ class ProviderImplRoff(EnsembleGridProvider):
         )
 
     def dates_for_dynamic_property(self, property_name: str) -> Optional[List[str]]:
-        print(property_name)
         dates = sorted(
             list(
                 self._inventory_df.loc[
@@ -216,7 +215,6 @@ class ProviderImplRoff(EnsembleGridProvider):
 
     def get_3dgrid(self, realization: int) -> xtgeo.Grid:
         df = self._inventory_df.loc[self._inventory_df[Col.TYPE] == GridType.GEOMETRY]
-        print(df)
         df = df.loc[df[Col.REAL] == realization]
 
         df = df[[Col.REL_PATH, Col.ORIGINAL_PATH]]
@@ -324,7 +322,6 @@ class ProviderImplRoff(EnsembleGridProvider):
                 fn_list.append(self._provider_dir / row[Col.REL_PATH])
             else:
                 fn_list.append(row[Col.ORIGINAL_PATH])
-
         return fn_list
 
 
@@ -352,6 +349,5 @@ def _compose_rel_grid_pathstr(
     if not attribute and not datestr:
         return str(Path(f"{real}--{name}{extension}"))
     if not datestr:
-        return str(Path(f"{real}--{name}--{attribute}--{datestr}{extension}"))
-
-    return str(Path(f"{real}--{name}--{attribute}{extension}"))
+        return str(Path(f"{real}--{name}--{attribute}{extension}"))
+    return str(Path(f"{real}--{name}--{attribute}--{datestr}{extension}"))
