@@ -92,7 +92,7 @@ setup(
         "defusedxml>=0.6.0",
         "ecl2df>=0.15.0; sys_platform=='linux'",
         "fmu-ensemble>=1.2.3",
-        "fmu-tools>=1.8",
+        "fmu-tools",
         "geojson>=2.5.0",
         "jsonschema>=3.2.0",
         "opm>=2020.10.1; sys_platform=='linux'",
