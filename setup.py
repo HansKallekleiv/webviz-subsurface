@@ -107,7 +107,7 @@ setup(
         "webviz-config>=0.3.8",
         "webviz-core-components>=0.5.6",
         "webviz-subsurface-components>=0.4.12",
-        "webviz_vtk@git+https://github.com/hanskallekleiv/webviz-vtk",
+        "webviz_vtk@git+https://github.com/hanskallekleiv/webviz-vtk@e8b4a3b55ecb7f20771ac0740fafa3745bc472ea",
         "xtgeo",
         # "xtgeo>=2.18.0a1",
     ],
