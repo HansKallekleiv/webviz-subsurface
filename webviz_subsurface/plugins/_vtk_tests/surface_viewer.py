@@ -14,9 +14,16 @@ from webviz_config.utils._dash_component_utils import calculate_slider_step
 import webviz_core_components as wcc
 import xtgeo
 from webviz_subsurface._utils.webvizstore_functions import get_path
-
+from vtkmodules.util.numpy_support import vtk_to_numpy
+from dash_vtk.utils.vtk import b64_encode_numpy
 from webviz_subsurface._utils.perf_timer import PerfTimer
-
+from vtkmodules.vtkFiltersGeometry import vtkStructuredGridGeometryFilter
+from vtkmodules.vtkCommonDataModel import (
+    vtkExplicitStructuredGrid,
+    vtkPolyData,
+    vtkCellLocator,
+    vtkGenericCell,
+)
 from ._xtgeo_to_vtk import surface_to_structured_grid
 
 LOGGER = logging.getLogger(__name__)
@@ -30,14 +37,35 @@ class VTKSurfaceViewer(WebvizPluginABC):
         self.surface_file = surface_file
         surface = xtgeo.surface_from_file(get_path(self.surface_file))
         surface.values *= -1
+        self.surface = surface
         self.sgrid = surface_to_structured_grid(surface)
         self.color_range = [
             self.sgrid["Elevation"].min(),
             self.sgrid["Elevation"].max(),
         ]
+        surf_filter = vtkStructuredGridGeometryFilter()
+        surf_filter.SetInputData(self.sgrid)
+
+        surf_filter.Update()
+
+        polydata: vtkPolyData = surf_filter.GetOutput()
+
+        self.points_np = b64_encode_numpy(
+            vtk_to_numpy(polydata.GetPoints().GetData()).ravel()
+        )
+        print(len(vtk_to_numpy(polydata.GetPoints().GetData()).ravel()))
+        self.polys_np = b64_encode_numpy(vtk_to_numpy(polydata.GetPolys().GetData()))
         self.surface_mesh = to_mesh_state(self.sgrid, field_to_keep="Elevation")
         self.contours = self.sgrid.contour(list(np.arange(0, -3000, -10)))
+        self.c_points_np = b64_encode_numpy(
+            vtk_to_numpy(self.contours.GetPoints().GetData()).ravel()
+        )
+        self.c_polys_np = b64_encode_numpy(
+            vtk_to_numpy(self.contours.GetLines().GetData())
+        )
+
         self.contours_mesh = to_mesh_state(self.contours)
+        print(self.contours_mesh["mesh"].keys())
         self.set_callbacks()
 
     @property
@@ -70,14 +98,27 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                 dash_vtk.GeometryRepresentation(
                                     id=self.uuid("surface-vtk-representation"),
                                     children=[
-                                        dash_vtk.Mesh(
-                                            id=self.uuid("surface-mesh"),
-                                            state=self.surface_mesh,
+                                        dash_vtk.PolyData(
+                                            id=self.uuid("surface-poly"),
+                                            polys=self.polys_np,
+                                            points=self.points_np,
+                                            children=dash_vtk.PointData(
+                                                [
+                                                    dash_vtk.DataArray(
+                                                        registration="setScalars",
+                                                        name="scalar",
+                                                        values=self.surface.values.flatten(
+                                                            order="F"
+                                                        ),
+                                                    )
+                                                ]
+                                            ),
                                         )
                                     ],
                                     # showScalarBar=True,
                                     property={
                                         "show_edges": True,
+                                        "edgeVisibility": True,
                                         "opacity": 1,
                                         "lighting": False,
                                     },
@@ -91,15 +132,17 @@ class VTKSurfaceViewer(WebvizPluginABC):
                                 dash_vtk.GeometryRepresentation(
                                     id=self.uuid("contours-vtk-representation"),
                                     children=[
-                                        dash_vtk.Mesh(
-                                            id=self.uuid("contours-mesh"),
-                                            state=self.contours_mesh,
+                                        dash_vtk.PolyData(
+                                            id=self.uuid("c-poly"),
+                                            lines=self.c_polys_np,
+                                            points=self.c_points_np,
                                         )
                                     ],
                                     property={
                                         "show_edges": True,
+                                        "edgeVisibility": True,
                                         "color": "black",
-                                        "width": 5,
+                                        "width": 10,
                                         "opacity": 1,
                                     },
                                     actor={"scale": [1, 1, 5]},
@@ -108,81 +151,81 @@ class VTKSurfaceViewer(WebvizPluginABC):
                         ),
                     ],
                 ),
-                wcc.Frame(
-                    style={"flex": 5},
-                    children=[
-                        dash_vtk.View(
-                            id=self.uuid("vtk-view2"),
-                            # background=[1, 1, 1],
-                            pickingModes=["click"],
-                            interactorSettings=[
-                                {
-                                    "button": 1,
-                                    "action": "Pan",
-                                },
-                                {
-                                    "button": 2,
-                                    "action": "Pan",
-                                },
-                                {
-                                    "button": 3,
-                                    "action": "Zoom",
-                                    "scrollEnabled": True,
-                                },
-                                {
-                                    "button": 1,
-                                    "action": "Pan",
-                                    "shift": True,
-                                },
-                                {
-                                    "button": 1,
-                                    "action": "Zoom",
-                                    "alt": True,
-                                },
-                            ],
-                            # cameraParallelProjection=True,
-                            children=[
-                                dash_vtk.GeometryRepresentation(
-                                    id=self.uuid("surface-vtk-representation"),
-                                    children=[
-                                        dash_vtk.Mesh(
-                                            id=self.uuid("surface-mesh"),
-                                            state=self.surface_mesh,
-                                        )
-                                    ],
-                                    # showScalarBar=True,
-                                    property={
-                                        "show_edges": True,
-                                        "opacity": 1,
-                                        "lighting": False,
-                                    },
-                                    actor={
-                                        "scale": [1, 1, 1],
-                                    },
-                                    colorMapPreset="erdc_rainbow_bright",
-                                    colorDataRange=self.color_range,
-                                    showCubeAxes=True,
-                                ),
-                                dash_vtk.GeometryRepresentation(
-                                    id=self.uuid("contours-vtk-representation"),
-                                    children=[
-                                        dash_vtk.Mesh(
-                                            id=self.uuid("contours-mesh"),
-                                            state=self.contours_mesh,
-                                        )
-                                    ],
-                                    property={
-                                        "show_edges": True,
-                                        "color": "black",
-                                        "width": 5,
-                                        "opacity": 1,
-                                    },
-                                    actor={"scale": [1, 1, 1]},
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
+                # wcc.Frame(
+                #     style={"flex": 5},
+                #     children=[
+                #         dash_vtk.View(
+                #             id=self.uuid("vtk-view2"),
+                #             # background=[1, 1, 1],
+                #             pickingModes=["click"],
+                #             interactorSettings=[
+                #                 {
+                #                     "button": 1,
+                #                     "action": "Pan",
+                #                 },
+                #                 {
+                #                     "button": 2,
+                #                     "action": "Pan",
+                #                 },
+                #                 {
+                #                     "button": 3,
+                #                     "action": "Zoom",
+                #                     "scrollEnabled": True,
+                #                 },
+                #                 {
+                #                     "button": 1,
+                #                     "action": "Pan",
+                #                     "shift": True,
+                #                 },
+                #                 {
+                #                     "button": 1,
+                #                     "action": "Zoom",
+                #                     "alt": True,
+                #                 },
+                #             ],
+                #             # cameraParallelProjection=True,
+                #             children=[
+                #                 dash_vtk.GeometryRepresentation(
+                #                     id=self.uuid("surface-vtk-representation"),
+                #                     children=[
+                #                         dash_vtk.Mesh(
+                #                             id=self.uuid("surface-mesh"),
+                #                             state=self.surface_mesh,
+                #                         )
+                #                     ],
+                #                     # showScalarBar=True,
+                #                     property={
+                #                         "show_edges": True,
+                #                         "opacity": 1,
+                #                         "lighting": False,
+                #                     },
+                #                     actor={
+                #                         "scale": [1, 1, 1],
+                #                     },
+                #                     colorMapPreset="erdc_rainbow_bright",
+                #                     colorDataRange=self.color_range,
+                #                     showCubeAxes=True,
+                #                 ),
+                #                 dash_vtk.GeometryRepresentation(
+                #                     id=self.uuid("contours-vtk-representation"),
+                #                     children=[
+                #                         dash_vtk.Mesh(
+                #                             id=self.uuid("contours-mesh"),
+                #                             state=self.contours_mesh,
+                #                         )
+                #                     ],
+                #                     property={
+                #                         "show_edges": True,
+                #                         "color": "black",
+                #                         "width": 5,
+                #                         "opacity": 1,
+                #                     },
+                #                     actor={"scale": [1, 1, 1]},
+                #                 ),
+                #             ],
+                #         ),
+                #     ],
+                # ),
                 dcc.Store(self.uuid("stored-coordinates"), data=[]),
             ]
         )
