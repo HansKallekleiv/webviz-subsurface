@@ -55,6 +55,7 @@ and be named as `surfacename--surfaceattribute.gri`
 ---
 
 * **`ensembles`:** Which ensembles in `shared_settings` to visualize.
+
 * **`surface_attributes`:** List of surface attributes from surface filenames(FMU standard). \
 All surface_attributes must have the same surface names.
  * **`surface_name_filter`:** List of the surface names (FMU standard) in stratigraphic order
@@ -68,7 +69,8 @@ All surface_attributes must have the same surface names.
 * **`well_downsample_interval`:** Sampling interval used for coarsening a well trajectory
 * **`calculate_percentiles`:** Only relevant for portable. Calculating P10/90 is
 time consuming and is by default disabled to allow fast generation of portable apps. \
-Activate to precalculate these percentiles for all realizations. \
+Activate to precalculate these percentiles for all realizations.
+* **`rel_surface_folder`:** Folder with maps relative to runpath in each realization.
 * **`initial_settings`:** Configuration for initializing the plugin with various \
     properties set. All properties are optional.
     ```yaml
@@ -141,6 +143,7 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
         well_downsample_interval: int = None,
         calculate_percentiles: bool = False,
         initial_settings: Dict = None,
+        rel_surface_folder: str = "share/results/maps",
     ):
 
         super().__init__()
@@ -188,7 +191,9 @@ e.g. [xtgeo](https://xtgeo.readthedocs.io/en/latest/).
         }
 
         # Create a table of surface files
-        surface_table = find_surfaces(self._ensemble_paths)
+        surface_table = find_surfaces(
+            self._ensemble_paths, surface_folder=rel_surface_folder
+        )
         # Filter on provided surface attributes
         surface_table = surface_table[surface_table["attribute"].isin(self._surf_attrs)]
         # Filter on provided surface names
